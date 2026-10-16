@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChatGPT Review Pulse</title>
+<meta name="description" content="Run report for an approval-gated n8n workflow that turns ChatGPT reviews into a weekly product pulse and a facts-only fee explainer.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f5f1; --card:#ffffff; --ink:#1b1a17; --muted:#5f6368; --line:#e4e1d8;
+  --accent:#0f6b5f; --accent-soft:#e3f1ee; --amber:#a15c07; --amber-soft:#fbf0dc;
+  --red:#b42318; --red-soft:#fdecea; --violet:#5b3fa8; --violet-soft:#eeeafa;
+  --blue:#1d5fa8; --blue-soft:#e6eff9; --bar:#cfd8d5;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141513; --card:#1d1f1c; --ink:#ecebe6; --muted:#a3a7a1; --line:#2f322e;
+    --accent:#5cc2b0; --accent-soft:#183a35; --amber:#e6a85a; --amber-soft:#3a2a14;
+    --red:#f08b80; --red-soft:#3d1c19; --violet:#b4a2f0; --violet-soft:#2a2340;
+    --blue:#8bb8ec; --blue-soft:#18283b; --bar:#3a403c;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141513; --card:#1d1f1c; --ink:#ecebe6; --muted:#a3a7a1; --line:#2f322e;
+  --accent:#5cc2b0; --accent-soft:#183a35; --amber:#e6a85a; --amber-soft:#3a2a14;
+  --red:#f08b80; --red-soft:#3d1c19; --violet:#b4a2f0; --violet-soft:#2a2340;
+  --blue:#8bb8ec; --blue-soft:#18283b; --bar:#3a403c;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+.wrap{max-width:980px;margin:0 auto;padding:0 16px}
+h1,h2,h3{font-family:"Source Serif 4",Georgia,serif;font-weight:600;line-height:1.2;margin:0}
+h2{font-size:clamp(24px,3.4vw,30px);margin-bottom:6px}
+h3{font-size:19px;margin:22px 0 8px}
+.lede{color:var(--muted);margin:0 0 22px;max-width:680px}
+section{padding:44px 0;border-top:1px solid var(--line)}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.field{font:500 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--blue-soft);color:var(--blue);padding:4px 7px;border-radius:6px;vertical-align:middle;margin-left:8px;white-space:nowrap}
+/* header */
+header{padding:56px 0 40px}
+header .eyebrow{padding-right:44px}
+header h1{font-size:clamp(32px,5.4vw,50px);letter-spacing:-.01em;max-width:820px}
+header .sub{font-size:18px;color:var(--muted);max-width:720px;margin:16px 0 22px}
+.btns{display:flex;flex-wrap:wrap;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);text-decoration:none;font-weight:500;font-size:15px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] .btn.primary{color:#0b1a17}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn.primary{color:#0b1a17}}
+.status{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;padding:6px 12px;border-radius:999px;margin-bottom:18px}
+.status.ok{background:var(--accent-soft);color:var(--accent)}
+.status.no{background:var(--red-soft);color:var(--red)}
+.kpis{margin-top:30px}
+.kpi .n{font:600 30px/1.1 "Source Serif 4",Georgia,serif}
+.kpi .l{font-size:14px;color:var(--muted);margin-top:4px}
+/* pipeline */
+.flow{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));counter-reset:step}
+.step{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;position:relative}
+.step b{display:block;font-size:15px;margin:6px 0 2px}
+.step p{margin:0;font-size:14px;color:var(--muted);line-height:1.5}
+.step::before{counter-increment:step;content:counter(step);position:absolute;top:12px;right:14px;font:600 13px Inter;color:var(--muted)}
+.tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:6px}
+.t-ai{background:var(--violet-soft);color:var(--violet)}
+.t-code{background:var(--blue-soft);color:var(--blue)}
+.t-human{background:var(--amber-soft);color:var(--amber)}
+.t-mcp{background:var(--accent-soft);color:var(--accent)}
+.legend{display:flex;flex-wrap:wrap;gap:16px;margin:0 0 16px;font-size:14px;color:var(--muted);align-items:center}
+.principle{margin-top:16px;border-left:3px solid var(--accent);padding:6px 0 6px 14px;font-size:15px}
+/* bars */
+.bars{display:grid;gap:14px}
+.bar-row{display:grid;grid-template-columns:minmax(0,1fr) 56px;gap:4px 12px;align-items:center}
+.bar-label{font-size:15px;font-weight:500;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.bar-label .muted{font-weight:400;font-size:13px}
+.bar-val{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;grid-row:span 2;align-self:end;padding-bottom:1px}
+.track{height:12px;background:var(--line);border-radius:6px;overflow:hidden}
+.fill{height:100%;background:var(--bar);border-radius:6px}
+.top .fill{background:var(--accent)}
+.win .fill{background:var(--amber)}
+details{margin-top:2px}
+summary{cursor:pointer;font-size:13px;color:var(--muted);list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"▸ ";}
+details[open] summary::before{content:"▾ ";}
+.subs{margin:6px 0 0;padding:0;list-style:none;font-size:14px;color:var(--muted)}
+.subs li{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding:3px 0}
+/* entry */
+.entry ol,.entry ul{margin:6px 0 10px;padding-left:22px}
+.entry li{margin:4px 0}
+.entry p{margin:6px 0}
+.quote{margin:0 0 12px;padding:14px 16px;background:var(--bg);border-radius:10px;border-left:3px solid var(--violet)}
+.quote q{font-family:"Source Serif 4",Georgia,serif;font-size:17px;quotes:"“" "”"}
+.quote .by{display:block;font-size:13px;color:var(--muted);margin-top:6px}
+.gray{color:var(--muted);font-size:14px}
+.callout{background:var(--amber-soft);border-radius:10px;padding:14px 16px;margin:6px 0}
+.explainer{border:2px solid var(--accent)}
+.explainer ul{padding-left:20px}
+.explainer li{margin:8px 0}
+.src a{word-break:break-all}
+.checks{list-style:none;padding:0;margin:0;font-size:15px}
+.checks li{padding:8px 0;border-bottom:1px solid var(--line);display:flex;gap:10px}
+.checks li:last-child{border-bottom:0}
+.ok-dot{color:var(--accent);font-weight:700}
+.bad-dot{color:var(--red);font-weight:700}
+.shots{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.shots figure{margin:0}
+.shots img{width:100%;border-radius:10px;border:1px solid var(--line);display:block;background:var(--card)}
+.shots figcaption{font-size:13px;color:var(--muted);margin-top:6px}
+footer{padding:36px 0 60px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
+.theme-toggle{position:fixed;top:12px;right:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;width:38px;height:38px;cursor:pointer;font-size:16px}
+nav.toc{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:14px;margin-top:26px}
+nav.toc a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--line)}
+@media (max-width:560px){ .card{padding:16px} header{padding-top:44px} }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeBtn" aria-label="Toggle dark mode">◐</button>
+
+<header class="wrap">
+  <div class="eyebrow">NextLeap PM Fellowship · Milestone 5 · RAGs &amp; Context Engineering</div>
+  <div id="status"></div>
+  <h1>From 722 ChatGPT reviews to a weekly pulse and a facts-only fee explainer, written only after a PM approves</h1>
+  <p class="sub">An n8n workflow tags real reviews with AI, ranks the pain with code, explains the top charge confusion from official OpenAI help pages (RAG), and asks a PM to approve before an MCP server writes to a Google Doc and creates a Gmail draft.</p>
+  <div class="btns" id="btns"></div>
+  <div class="grid g4 kpis" id="kpis"></div>
+  <nav class="toc">
+    <a href="#how">How it works</a><a href="#themes">Themes</a><a href="#pulse">Weekly pulse</a>
+    <a href="#fee">Fee issue</a><a href="#explainer">Explainer (RAG)</a><a href="#approval">Approval + MCP</a><a href="#evals">Checks</a>
+  </nav>
+</header>
+
+<main class="wrap">
+
+<section id="how">
+  <div class="eyebrow">How it works</div>
+  <h2>The AI judges. Code counts and checks.</h2>
+  <p class="lede">The AI only does what needs judgement. Everything that must be exact (counts, ranks, word limits, quotes, links) is done or verified by code.</p>
+  <div class="legend">
+    <span><span class="tag t-ai">AI</span> judgement</span>
+    <span><span class="tag t-code">Code</span> exact work + checks</span>
+    <span><span class="tag t-human">Human</span> approval</span>
+    <span><span class="tag t-mcp">MCP</span> narrow write tools</span>
+  </div>
+  <div class="flow">
+    <div class="step"><span class="tag t-ai">AI</span><b>Tag each review once</b><p>Frozen list of 5 themes + sub-themes. New reviews only; tags are saved.</p></div>
+    <div class="step"><span class="tag t-code">Code</span><b>Rank themes by pain</b><p>Pain points (1★ = 4 … 5★ = 0), top 3, trend (Google Play only), coverage eval.</p></div>
+    <div class="step"><span class="tag t-ai">AI</span> <span class="tag t-code">Code</span><b>Pick + verify quotes</b><p>AI picks from a code shortlist; code checks every quote word for word and strips personal data.</p></div>
+    <div class="step"><span class="tag t-ai">AI</span> <span class="tag t-code">Code</span><b>Find the fee issue</b><p>AI sorts charge complaints into frozen groups F1–F6; code counts and picks the winner.</p></div>
+    <div class="step"><span class="tag t-code">Code</span> <span class="tag t-ai">AI</span><b>Explain it with RAG</b><p>14 official help pages → vector store → small-to-big retrieval → facts-only explainer, checked by code.</p></div>
+    <div class="step"><span class="tag t-human">Human</span><b>PM approves in Gmail</b><p>Approve / Reject form with comments. Nothing is written before this.</p></div>
+    <div class="step"><span class="tag t-mcp">MCP</span><b>Write to Doc + Gmail draft</b><p>Two tools only: append to the pulse log, create a draft. There is no send tool.</p></div>
+  </div>
+</section>
+
+<section id="themes">
+  <div class="eyebrow">Top themes <span class="field">top_themes</span></div>
+  <h2>Where users feel the most pain</h2>
+  <p class="lede" id="themesLede"></p>
+  <div class="card"><div class="bars" id="themeBars"></div></div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card"><h3 style="margin-top:0">Reviews by source</h3><div class="bars" id="sourceBars"></div></div>
+    <div class="card"><h3 style="margin-top:0">What's not pain</h3><p class="small" id="praiseText" style="margin:0"></p></div>
+  </div>
+</section>
+
+<section id="pulse">
+  <div class="eyebrow">Weekly pulse <span class="field">weekly_pulse</span></div>
+  <h2>This week's pulse</h2>
+  <p class="lede">The internal note for the product team. It's 250 words or fewer, the quotes are real, and the numbers come from code.</p>
+  <div class="card entry" id="pulseCard"></div>
+</section>
+
+<section id="fee">
+  <div class="eyebrow">Identified fee issue <span class="field">identified_fee_issue</span></div>
+  <h2>The charge confusion users report most</h2>
+  <p class="lede" id="feeLede"></p>
+  <div class="card"><div class="bars" id="feeBars"></div><p class="gray" id="feeNote" style="margin:16px 0 0"></p></div>
+</section>
+
+<section id="explainer">
+  <div class="eyebrow">Customer explainer <span class="field">explanation_bullets</span> <span class="field">source_links</span></div>
+  <h2>What a confused customer would read</h2>
+  <p class="lede">Neutral and facts-only, with 6 bullets or fewer. Every fact comes from official OpenAI help pages fetched in this run.</p>
+  <div class="card explainer entry" id="explainerCard"></div>
+</section>
+
+<section id="approval">
+  <div class="eyebrow">Approval + MCP</div>
+  <h2>Nothing is written until a PM says yes</h2>
+  <div class="grid g3">
+    <div class="card"><span class="tag t-human">Step 1</span><h3>Review email</h3><p class="small muted" style="margin:0">The workflow pauses and emails the PM a preview with every automated check, plus an Approve / Reject form with comments.</p></div>
+    <div class="card"><span class="tag t-mcp">Step 2</span><h3>MCP: append_to_pulse_log</h3><p class="small muted" style="margin:0">On approval only, the MCP server adds a formatted entry (newest first) to the <i>Weekly Product Pulse Log</i> Google Doc.</p></div>
+    <div class="card"><span class="tag t-mcp">Step 3</span><h3>MCP: create_email_draft</h3><p class="small muted" style="margin:0">It then creates the Gmail draft <i>"Weekly Product Pulse + Customer Clarification — [date]"</i>. It's never sent automatically.</p></div>
+  </div>
+  <div class="card" style="margin-top:14px" id="decisionCard"></div>
+  <h3 id="shotsTitle">Proof from the live run</h3>
+  <div class="shots" id="shots"></div>
+</section>
+
+<section id="evals">
+  <div class="eyebrow">Checks</div>
+  <h2>Evals and guardrails in this run</h2>
+  <div class="card"><ul class="checks" id="checks"></ul></div>
+</section>
+
+</main>
+
+<footer class="wrap">
+  <p id="runNote"></p>
+  <p>Prototype for the NextLeap PM Fellowship. Not affiliated with OpenAI. The explainer quotes OpenAI's public help pages as checked on the date shown, and they may change. Built with n8n, OpenAI (gpt-5-mini, text-embedding-3-small), Jina Reader, Google Docs, Gmail and MCP.</p>
+</footer>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  // theme toggle
+  var root=document.documentElement, btn=document.getElementById('themeBtn');
+  try{ var saved=localStorage.getItem('theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  btn.onclick=function(){
+    var dark = root.getAttribute('data-theme')==='dark' || (!root.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+    var next = dark?'light':'dark'; root.setAttribute('data-theme',next);
+    try{localStorage.setItem('theme',next);}catch(e){}
+  };
+
+  var E=window.ENTRY||[], S=window.STATS||{}, L=window.LINKS||{};
+  var $=function(id){return document.getElementById(id)};
+  var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
+
+  // ---- parse entry blocks into sections
+  var doc={title:'',meta:[],secs:[]}, cur=null, sub=null;
+  E.forEach(function(b){
+    if(b.t==='h1'){doc.title=b.text;return;}
+    if(b.t==='h2'){cur={title:b.text,items:[],subs:[]};doc.secs.push(cur);sub=null;return;}
+    if(b.t==='h3'&&cur){sub={title:b.text,items:[]};cur.subs.push(sub);return;}
+    (cur?(sub?sub.items:cur.items):doc.meta).push(b);
+  });
+  var sec=function(start){return doc.secs.find(function(s){return s.title.toLowerCase().indexOf(start)===0})||{items:[],subs:[]}};
+  var inline=function(b){
+    var t=String(b.text||'');
+    var h = b.boldPrefix ? '<strong>'+esc(t.slice(0,b.boldPrefix))+'</strong>'+esc(t.slice(b.boldPrefix)) : esc(t);
+    if(b.bold) h='<strong>'+h+'</strong>';
+    if(b.italic) h='<em>'+h+'</em>';
+    if(b.link && /^https:\/\//.test(b.link)) h='<a href="'+esc(b.link)+'" target="_blank" rel="noopener">'+h+'</a>';
+    return h;
+  };
+  var renderBlocks=function(items){
+    var html='', i=0;
+    while(i<items.length){
+      var b=items[i];
+      if(b.t==='bullet'||b.t==='number'){
+        var tag=b.t==='number'?'ol':'ul', li='';
+        while(i<items.length&&items[i].t===b.t){li+='<li>'+inline(items[i])+'</li>';i++;}
+        html+='<'+tag+'>'+li+'</'+tag+'>'; continue;
+      }
+      html+='<p class="'+(b.gray?'gray':'')+'">'+inline(b)+'</p>'; i++;
+    }
+    return html;
+  };
+
+  // ---- header
+  var metaText=doc.meta.map(function(b){return b.text}).join(' ');
+  var approved=/Approved/.test(metaText), rejected=/Rejected/.test(metaText);
+  var statusLine=(doc.meta[0]||{}).text||'';
+  if(approved||rejected) $('status').innerHTML='<span class="status '+(approved?'ok':'no')+'">'+esc(statusLine)+'</span>';
+  var b=[];
+  if(L.video) b.push('<a class="btn primary" href="'+esc(L.video)+'" target="_blank" rel="noopener">▶ Watch the 3-min demo</a>');
+  if(L.doc) b.push('<a class="btn" href="'+esc(L.doc)+'" target="_blank" rel="noopener">📄 Live pulse log (Google Doc)</a>');
+  if(L.github) b.push('<a class="btn" href="'+esc(L.github)+'" target="_blank" rel="noopener">⌘ Workflows + README on GitHub</a>');
+  $('btns').innerHTML=b.join('');
+  var top3=(S.themes||[]).filter(function(t){return t.top3});
+  var fee=(S.fees||{}), feeWin=(fee.groups||[])[0]||{};
+  var kp=[
+    [S.total_reviews,'real reviews · '+(S.sources||[]).length+' sources'],
+    [(S.window||{}).start?((S.window.start.replace(/ \d{4}$/,''))+' – '+S.window.end):'','review window'],
+    [(S.coverage||{}).other_rate_pct+'%','left as "Other" (target ≤ '+(S.coverage||{}).pass_mark_pct+'%)'],
+    [fee.fee_reviews,'reviews with a charge problem']
+  ];
+  $('kpis').innerHTML=kp.map(function(k){return '<div class="card kpi"><div class="n">'+esc(k[0])+'</div><div class="l">'+esc(k[1])+'</div></div>'}).join('');
+
+  // ---- themes
+  var maxShare=Math.max.apply(null,(S.themes||[]).map(function(t){return t.share}).concat([1]));
+  $('themesLede').textContent='Share of pain = each theme\'s share of all pain points (1★ = 4, 2★ = 3, 3★ = 2, 4★ = 1, 5★ = 0). That way, angry reviews count more than mild ones. The top 3 are highlighted. Open a theme to see its sub-themes.';
+  $('themeBars').innerHTML=(S.themes||[]).map(function(t){
+    var subs=(t.subs||[]).map(function(s){return '<li><span>'+esc(s[0])+'</span><span>'+s[1]+'</span></li>'}).join('');
+    return '<div class="bar-row'+(t.top3?' top':'')+'"><div class="bar-label">'+esc(t.name)+' <span class="muted">'+t.reviews+' reviews · avg '+t.avg_rating.toFixed(2)+'★'+(t.top3?' · top 3':'')+'</span></div>'+
+      '<div class="bar-val">'+Math.round(t.share)+'%</div>'+
+      '<div><div class="track"><div class="fill" style="width:'+(t.share/maxShare*100)+'%"></div></div>'+
+      '<details><summary>Sub-themes (reviews)</summary><ul class="subs">'+subs+'</ul></details></div></div>';
+  }).join('');
+  var maxSrc=Math.max.apply(null,(S.sources||[]).map(function(s){return s.reviews}).concat([1]));
+  $('sourceBars').innerHTML=(S.sources||[]).map(function(s){
+    return '<div class="bar-row"><div class="bar-label">'+esc(s.name)+'</div><div class="bar-val">'+s.reviews+'</div><div class="track"><div class="fill" style="width:'+(s.reviews/maxSrc*100)+'%"></div></div></div>';
+  }).join('');
+  var p=S.praise||{}, c=S.coverage||{};
+  $('praiseText').innerHTML='<strong>'+p.reviews+' reviews ('+p.share_pct+'%)</strong> are praise, mostly for '+esc((p.top||[]).join(', '))+'. They are kept out of the pain ranking.<br><br><strong>'+c.other+' reviews</strong> didn\'t fit any theme. That\'s '+c.other_rate_pct+'% of non-praise reviews, under the '+c.pass_mark_pct+'% limit, so the theme list covers the data well.';
+
+  // ---- pulse
+  var P=sec('weekly pulse'), html='';
+  var topSec=sec('top themes');
+  if(topSec.items.length) html+='<h3 style="margin-top:0">Top themes</h3>'+renderBlocks(topSec.items);
+  P.subs.forEach(function(s){
+    var title=s.title.toLowerCase();
+    if(title.indexOf('what users said')===0){
+      html+='<h3>'+esc(s.title)+'</h3>'+s.items.map(function(q){
+        var m=String(q.text).match(/^“([\s\S]*)”\s*(\(.*\))?$/);
+        return m?'<blockquote class="quote"><q>'+esc(m[1])+'</q><span class="by">'+esc(m[2]||'')+'</span></blockquote>':'<p>'+inline(q)+'</p>';
+      }).join('');
+    } else if(title.indexOf('key observation')===0){
+      html+='<h3>'+esc(s.title)+'</h3><div class="callout">'+renderBlocks(s.items)+'</div>';
+    } else html+='<h3>'+esc(s.title)+'</h3>'+renderBlocks(s.items);
+  });
+  $('pulseCard').innerHTML=html||'<p class="gray">Paste the run\'s entry into data.js to show the pulse.</p>';
+
+  // ---- fee
+  var F=sec('identified fee issue');
+  var maxF=Math.max.apply(null,(fee.groups||[]).map(function(g){return g.reviews}).concat([1]));
+  $('feeLede').innerHTML='Charge problems are sorted into fixed groups so results stay comparable week to week. "Too expensive" and usage limits are <em>not</em> charge confusion. '+(F.items[0]?'This run: <strong>'+inline(F.items[0])+'</strong>.':'');
+  $('feeBars').innerHTML=(fee.groups||[]).map(function(g,i){
+    return '<div class="bar-row'+(i===0?' win':'')+'"><div class="bar-label"><span class="muted">'+esc(g.id)+'</span> '+esc(g.name)+'</div><div class="bar-val">'+g.reviews+'</div><div class="track"><div class="fill" style="width:'+(g.reviews/maxF*100)+'%"></div></div></div>';
+  }).join('');
+  $('feeNote').textContent=fee.fee_reviews+' reviews mention a charge problem: '+fee.in_groups+' fit a group and '+fee.excluded+' were excluded as not charge confusion. '+(fee.close_call?'Close call: the top two groups are within 2 reviews, so the approval email flags it and the PM can override.':'');
+
+  // ---- explainer
+  var X=sec('customer explainer'), SRC=sec('sources');
+  var xh=renderBlocks(X.items.filter(function(b){return b.t!=='bullet'}));
+  xh+='<ul>'+X.items.filter(function(b){return b.t==='bullet'}).map(function(b){return '<li>'+inline(b)+'</li>'}).join('')+'</ul>';
+  if(SRC.items.length) xh+='<h3>Official sources</h3><div class="src">'+renderBlocks(SRC.items)+'</div>';
+  $('explainerCard').innerHTML=xh;
+
+  // ---- decision
+  $('decisionCard').innerHTML='<h3 style="margin-top:0">This run\'s decision</h3>'+(doc.meta.length?renderBlocks(doc.meta):'<p class="gray">No decision recorded.</p>');
+
+  // ---- screenshots (hidden if the file is missing)
+  var shots=[['screenshots/approval_form.png','Approval form in Gmail (Approve / Reject + comments)'],
+             ['screenshots/doc_entry.png','Entry appended to the Weekly Product Pulse Log (Google Doc)'],
+             ['screenshots/email_draft.png','Gmail draft created by MCP (not sent)'],
+             ['screenshots/main_canvas.png','Main n8n workflow'],
+             ['screenshots/mcp_server_canvas.png','MCP server: two tools only'],
+             ['screenshots/reject_run.png','Reject path: nothing is written']];
+  $('shots').innerHTML=shots.map(function(s){return '<figure><a href="'+s[0]+'" target="_blank"><img src="'+s[0]+'" alt="'+esc(s[1])+'" onerror="var f=this.closest(\'figure\'),g=f.parentNode;f.remove();if(!g.children.length){g.previousElementSibling.remove();g.remove();}"></a><figcaption>'+esc(s[1])+'</figcaption></figure>'}).join('');
+
+  // ---- checks
+  var gray=(P.subs.find(function(s){return /action/i.test(s.title)})||{items:[]}).items.filter(function(b){return b.gray}).map(function(b){return b.text}).join(' ');
+  var wc=(gray.match(/(\d+)\/250 words/)||[])[1], qv=(gray.match(/verified (\d)\/3/)||[])[1];
+  var r=S.rag||{};
+  var ck=[
+    [true,'<strong>Coverage:</strong> only '+c.other_rate_pct+'% of non-praise reviews left as "Other" (limit '+c.pass_mark_pct+'%).'],
+    [wc?Number(wc)<=250:null,'<strong>Pulse length:</strong> '+(wc||'?')+' / 250 words, checked by code.'],
+    [qv?qv==='3':null,'<strong>Quotes:</strong> '+(qv||'?')+' / 3 verified word for word against the original review. No names, emails or ticket numbers.'],
+    [true,'<strong>Fee issue:</strong> every charge review is counted once (grouped or excluded). Close calls are flagged to the PM.'],
+    [r.expected_article_found,'<strong>Retrieval eval:</strong> the expected help article was retrieved'+(r.expected_page_rank?' (rank '+r.expected_page_rank+')':'')+' from '+r.pages_in_kb+' official pages.'],
+    [true,'<strong>Explainer:</strong> 6 bullets or fewer, exactly 2 allowed source links, numbers must appear in the sources, "Last checked" date added by code.'],
+    [true,'<strong>Least privilege:</strong> the MCP server exposes 2 tools (append, draft). There is no send tool, and nothing is written without approval.']
+  ];
+  $('checks').innerHTML=ck.map(function(x){return '<li><span class="'+(x[0]===false?'bad-dot':'ok-dot')+'">'+(x[0]===false?'✕':'✓')+'</span><span>'+x[1]+'</span></li>'}).join('');
+  $('runNote').textContent=(S.run_note||'')+' '+(doc.title?'Entry: '+doc.title+'.':'');
+})();
+</script>
+</body>
+</html>
