@@ -346,6 +346,7 @@ nav.toc a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--
              ['screenshots/email_draft.png','Gmail draft created by MCP (not sent)'],
              ['screenshots/main_canvas.png','Main n8n workflow'],
              ['screenshots/mcp_server_canvas.png','MCP server: two tools only'],
+             ['screenshots/helper_canvas.png','Helper behind append_to_pulse_log: builds Google Docs formatting requests'],
              ['screenshots/reject_run.png','Reject path: nothing is written']];
   $('shots').innerHTML=shots.map(function(s){return '<figure><a href="'+s[0]+'" target="_blank"><img src="'+s[0]+'" alt="'+esc(s[1])+'" onerror="var f=this.closest(\'figure\'),g=f.parentNode;f.remove();if(!g.children.length){g.previousElementSibling.remove();g.remove();}"></a><figcaption>'+esc(s[1])+'</figcaption></figure>'}).join('');
 
