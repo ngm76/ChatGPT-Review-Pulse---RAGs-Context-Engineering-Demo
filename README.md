@@ -16,7 +16,7 @@
 | Weekly pulse (final run) | Section 6 below + [`screenshots/doc_entry.png`](screenshots/doc_entry.png) |
 | Doc snippet | [`screenshots/doc_entry.png`](screenshots/doc_entry.png) (formatted entry added by MCP after approval) |
 | Email draft | [`screenshots/email_draft.png`](screenshots/email_draft.png) (Gmail draft created by MCP, never sent) |
-| Approval step | [`screenshots/approval_form.png`](screenshots/approval_form.png) (Gmail approval email with all checks + Approve/Reject form) |
+| Approval step | [`screenshots/approval_form.png`](screenshots/approval_form.png) (approval email with all checks) + [`media/approval_step.mp4`](media/approval_step.mp4) (16 s recording: Approve + comment → Submit) |
 | Reviews CSV sample | [`reviews_sample.csv`](reviews_sample.csv) (70 of 722 rows, stratified by source × theme, with all AI tags) |
 | Source URLs | Section 8 |
 | Workflow exports | [`workflows/`](workflows/): `main_workflow.json`, `mcp_server_workflow.json`, `append_formatted_entry.json` (secrets, email and doc ID replaced by placeholders) |
