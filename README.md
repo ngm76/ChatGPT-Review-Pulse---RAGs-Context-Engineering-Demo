@@ -11,7 +11,7 @@
 
 | Deliverable | Where |
 |---|---|
-| Prototype (run report page) | **https://ngm76.github.io/ChatGPT-Review-Pulse---RAGs-Context-Engineering-Demo/** — every output of the final run (#32, 20 Oct 2026), the pipeline, evals and screenshots |
+| Prototype (run report page) | **https://ngm76.github.io/ChatGPT-Review-Pulse---RAGs-Context-Engineering-Demo/** — every output of the final run (#36, 20 Oct 2026), the pipeline, evals and screenshots |
 | Live pulse log (Google Doc, view only) | [Weekly Product Pulse Log](https://docs.google.com/document/d/1M20MAQh9AXokbWMxprQHfIx7WI96DScTYDDu6WemYkI/edit?usp=sharing) |
 | Weekly pulse (final run) | Section 6 below + [`screenshots/doc_entry.png`](screenshots/doc_entry.png) |
 | Doc snippet | [`screenshots/doc_entry.png`](screenshots/doc_entry.png) (formatted entry added by MCP after approval) |
@@ -98,7 +98,7 @@ MCP SERVER (separate workflow "Pulse Tools (MCP Server)")
 
 ## 6. Outputs
 
-### Weekly pulse (final run #32, 20 Oct 2026 · 227/250 words · quotes 3/3 verified · approved by PM)
+### Weekly pulse (final run #36, 20 Oct 2026 · 222/250 words · quotes 3/3 verified · approved by PM)
 ```
 Weekly Product Pulse: ChatGPT · 20 Oct 2026
 722 reviews · 21 Jul 2026–12 Oct 2026 · Google Play, App Store, Trustpilot
@@ -109,20 +109,20 @@ TOP THEMES (by user pain)
 3. Accuracy & hallucinations — 19% of pain, mostly confident but wrong answers or advice
 
 WHAT USERS SAID
-• “Yet, a minute later, I was hit with another chat limit, this time until 8:30.” (Google Play, 1★, Sep 2026)
-• “Never managed to generate anything then activity is paused and wait to refresh.” (Google Play, 1★, Sep 2026)
-• “If it can't give you the correct answer, it will make up something that sounds plausible and state it as fact.” (Google Play, 1★, Sep 2026)
+• “…Yet, a minute later, I was hit with another chat limit, this time until 8:30.” (Google Play, 1★, Sep 2026)
+• “…Never managed to generate anything then activity is paused and wait to refresh.” (Google Play, 1★, Sep 2026)
+• “…If it can't give you the correct answer, it will make up something that sounds plausible and state it as fact.” (Google Play, 1★, Sep 2026)
 
 KEY OBSERVATION
-Usage limits and reset timers drive the largest share of pain (36.4%), causing frequent user disruption ahead of reliability and hallucination complaints.
+Highest pain arises from disruptive usage limits and reset timers, outweighing reliability and accuracy issues by volume.
 
 WHAT'S WORKING
-Help with studying, productivity and writing.
+Users value study help, productivity and writing assistance most.
 
 ACTION IDEAS
-1. Show real-time usage countdown and explicit reset time within each chat session banner.
-2. Add in-app retry button and automated error reporting for crashes and slow responses.
-3. Surface low-confidence warnings and source citations for answers flagged as uncertain.
+1. Display real-time chat quota and next-reset countdown prominently in chat header.
+2. Implement automatic retry with progress indicator and offline recovery for failed requests.
+3. Introduce uncertainty labels and required source citations for asserted factual answers.
 
 Data note: no reliable trend this week; Google Play data ends 19 Sep 2026.
 ```
@@ -132,13 +132,13 @@ Data note: no reliable trend this week; Google Play data ends 19 Sep 2026.
 It's a **close call** (next: *Refund refused or not offered*, 6), so the approval email flags it. Charge confusion is spread across several types; no single type dominates.
 
 ### Customer explainer (facts only, ≤6 bullets, 2 official links)
-**Why paid plan didn't activate**
+**Paid but plan not active**
 
-- ChatGPT Plus is a $20/month subscription; if you believe you were incorrectly charged you can request a refund; refunds are typically processed within 5–10 business days after approval.
-- If an Apple renewal fails, Apple may continue trying to recover it; your subscription can appear inactive in ChatGPT while Apple still attempts recovery, possibly causing duplicate charges.
-- Update your Apple payment method and allow Apple to recover the original subscription rather than starting a new subscription on a different platform to avoid duplicates.
-- Check the ChatGPT account email; on iOS/Android use Settings > Restore purchases; sign out and sign back in; contact support with the receipt or last four card digits if the issue persists.
-- To cancel: Log into ChatGPT, click your profile icon → Settings → Account → Manage → Cancel subscription.
+- If you believe you were incorrectly charged or want a refund, you can request a refund; refunds are typically processed within 5–10 business days after approval.
+- When requesting help, sign in to the ChatGPT account tied to your Plus subscription; its account email may differ from the email where you receive receipts.
+- Check your sign-in method and, on iOS/Android, go to Settings > Restore purchases to sync your subscription.
+- If an Apple renewal fails, your subscription may appear inactive while Apple continues recovery; updating Apple payment and starting a new subscription can cause duplicate charges.
+- To view invoices, manage, or cancel your plan, go to your profile icon → Settings → Account → Manage to see invoices and cancel.
 
 Sources:
 - https://help.openai.com/en/articles/6950777-what-is-chatgpt-plus
@@ -156,7 +156,7 @@ Last checked: 20 Oct 2026
 | Coverage | % of non-praise reviews tagged "Other" | 9.5% (pass mark ≤20%) |
 | Tagging spot-check | Manual read of 25 tagged reviews | 23/25 agree (92%) |
 | Quotes | Code checks every quote is a continuous, word-for-word excerpt; no "…" in the middle; 6–30 words; no emails or ticket numbers | 3/3 verified; flagged fallback if not |
-| Pulse | ≤250 words; 3 actions covering the 3 top themes; every number must exist in the fact sheet; facts must be present | 227 words, pass |
+| Pulse | ≤250 words; 3 actions covering the 3 top themes; every number must exist in the fact sheet; facts must be present | 222 words, pass |
 | Fee grouping | Every fee review used exactly once; only frozen group IDs; close-call flag | 34/34 accounted for; close call flagged |
 | Retrieval eval | Did search retrieve the expected help article for the fee issue? What rank? | Found; expected page ranked 2nd (raw top page was "invoices") |
 | Explainer | 1–6 bullets; exactly 2 links, both retrieved and on the approved list; banned phrases (false promises, apologies); every number must appear in the sources | Pass |
@@ -216,7 +216,8 @@ Full KB (14 pages): the above plus Pro tiers, Free tier FAQ, card declined, invo
 - **Trend:** Google Play data ends 19 Sep 2026, so there's no reliable week-on-week trend; the pulse says so.
 - **Source mix:** Trustpilot holds 49% of accuracy complaints but only 26% of reviews; App Store is 62% praise.
 - **Fee confusion is fragmented** (7 / 6 / 6 / 5): the top issue is a close call, decided by data and flagged.
-- **Explainer focus:** the final explainer is facts-only and checked, but two bullets drift from the F4 issue (refund timing and cancellation steps are true but secondary). Future: a relevance check per bullet against the fee group's description.
+- **Explainer wording still needs a human eye.** The final explainer is facts-only, cites 2 official pages and passes every code check, but one bullet compresses the Apple-renewal guidance badly ("updating Apple payment and starting a new subscription can cause duplicate charges": the source says updating payment is the fix, and *starting a new subscription elsewhere* causes duplicates). Code checks catch numbers, links and banned phrases, not meaning; that's what the approval step is for. Future: a per-bullet faithfulness check (NLI or a second model) against the retrieved excerpt.
+- **Run-to-run variation:** numbers come from code and quotes are verified word for word, but the AI-written observation, actions and explainer vary slightly between runs (compare runs #32 and #36 on 20 Oct). Screenshots in `screenshots/` are from run #32; the page and this README show run #36, the latest entry in the doc.
 - **Retrieval** relies on a hand-made "expected article" map per fee group; future: query rewriting or a reranker.
 - **Jina Reader** anonymous access is rate-limited per IP (shared on n8n Cloud); a free API key is used. Future: keep a last-good snapshot as a fallback.
 - **Quotes** are re-chosen each run (always verified); the explainer is regenerated each run (always checked).

@@ -18,12 +18,12 @@ window.ENTRY = [
  },
  {
   "t": "p",
-  "text": "✅ Approved by PM · 20 Oct 2026, 21:14 IST · Run #32",
+  "text": "✅ Approved by PM · 20 Oct 2026, 21:27 IST · Run #36",
   "gray": true
  },
  {
   "t": "p",
-  "text": "💬 PM comments: ok",
+  "text": "💬 PM comments: Okay",
   "italic": true
  },
  {
@@ -60,17 +60,17 @@ window.ENTRY = [
  },
  {
   "t": "bullet",
-  "text": "“Yet, a minute later, I was hit with another chat limit, this time until 8:30.” (Google Play, 1★, Sep 2026)",
+  "text": "“…Yet, a minute later, I was hit with another chat limit, this time until 8:30.” (Google Play, 1★, Sep 2026)",
   "italic": true
  },
  {
   "t": "bullet",
-  "text": "“Never managed to generate anything then activity is paused and wait to refresh.” (Google Play, 1★, Sep 2026)",
+  "text": "“…Never managed to generate anything then activity is paused and wait to refresh.” (Google Play, 1★, Sep 2026)",
   "italic": true
  },
  {
   "t": "bullet",
-  "text": "“If it can't give you the correct answer, it will make up something that sounds plausible and state it as fact.” (Google Play, 1★, Sep 2026)",
+  "text": "“…If it can't give you the correct answer, it will make up something that sounds plausible and state it as fact.” (Google Play, 1★, Sep 2026)",
   "italic": true
  },
  {
@@ -79,7 +79,7 @@ window.ENTRY = [
  },
  {
   "t": "p",
-  "text": "Usage limits and reset timers drive the largest share of pain (36.4%), causing frequent user disruption ahead of reliability and hallucination complaints."
+  "text": "Highest pain arises from disruptive usage limits and reset timers, outweighing reliability and accuracy issues by volume."
  },
  {
   "t": "h3",
@@ -87,7 +87,7 @@ window.ENTRY = [
  },
  {
   "t": "p",
-  "text": "Help with studying, productivity and writing."
+  "text": "Users value study help, productivity and writing assistance most."
  },
  {
   "t": "h3",
@@ -95,15 +95,15 @@ window.ENTRY = [
  },
  {
   "t": "number",
-  "text": "Show real-time usage countdown and explicit reset time within each chat session banner."
+  "text": "Display real-time chat quota and next-reset countdown prominently in chat header."
  },
  {
   "t": "number",
-  "text": "Add in-app retry button and automated error reporting for crashes and slow responses."
+  "text": "Implement automatic retry with progress indicator and offline recovery for failed requests."
  },
  {
   "t": "number",
-  "text": "Surface low-confidence warnings and source citations for answers flagged as uncertain."
+  "text": "Introduce uncertainty labels and required source citations for asserted factual answers."
  },
  {
   "t": "p",
@@ -112,7 +112,7 @@ window.ENTRY = [
  },
  {
   "t": "p",
-  "text": "Pulse checks: 227/250 words · quotes verified 3/3",
+  "text": "Pulse checks: 222/250 words · quotes verified 3/3",
   "gray": true
  },
  {
@@ -130,28 +130,28 @@ window.ENTRY = [
  },
  {
   "t": "p",
-  "text": "Why paid plan didn't activate",
+  "text": "Paid but plan not active",
   "bold": true
  },
  {
   "t": "bullet",
-  "text": "ChatGPT Plus is a $20/month subscription; if you believe you were incorrectly charged you can request a refund; refunds are typically processed within 5–10 business days after approval."
+  "text": "If you believe you were incorrectly charged or want a refund, you can request a refund; refunds are typically processed within 5–10 business days after approval."
  },
  {
   "t": "bullet",
-  "text": "If an Apple renewal fails, Apple may continue trying to recover it; your subscription can appear inactive in ChatGPT while Apple still attempts recovery, possibly causing duplicate charges."
+  "text": "When requesting help, sign in to the ChatGPT account tied to your Plus subscription; its account email may differ from the email where you receive receipts."
  },
  {
   "t": "bullet",
-  "text": "Update your Apple payment method and allow Apple to recover the original subscription rather than starting a new subscription on a different platform to avoid duplicates."
+  "text": "Check your sign-in method and, on iOS/Android, go to Settings > Restore purchases to sync your subscription."
  },
  {
   "t": "bullet",
-  "text": "Check the ChatGPT account email; on iOS/Android use Settings > Restore purchases; sign out and sign back in; contact support with the receipt or last four card digits if the issue persists."
+  "text": "If an Apple renewal fails, your subscription may appear inactive while Apple continues recovery; updating Apple payment and starting a new subscription can cause duplicate charges."
  },
  {
   "t": "bullet",
-  "text": "To cancel: Log into ChatGPT, click your profile icon → Settings → Account → Manage → Cancel subscription."
+  "text": "To view invoices, manage, or cancel your plan, go to your profile icon → Settings → Account → Manage to see invoices and cancel."
  },
  {
   "t": "h2",
@@ -176,7 +176,7 @@ window.ENTRY = [
 
 // 3) STATS: numbers from the n8n run (Rank themes, Pick fee issue, Check explainer)
 window.STATS = {
-  "run_note": "Numbers from the n8n run on 20 Oct 2026 (run #32) (Rank themes, Pick fee issue, Check explainer nodes).",
+  "run_note": "Numbers from the n8n run on 20 Oct 2026 (run #36) (Rank themes, Pick fee issue, Check explainer nodes).",
   "total_reviews": 722,
   "window": {
     "start": "21 Jul 2026",
