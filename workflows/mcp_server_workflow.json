@@ -1,0 +1,132 @@
+{
+  "name": "Pulse Tools (MCP Server)",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "bearerAuth",
+        "path": "c129b705-c370-42ac-84fa-7b27c8a76991"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2.1,
+      "position": [
+        -496,
+        -112
+      ],
+      "id": "243034f6-afda-4a54-8896-f206fd5f5371",
+      "name": "MCP Server Trigger",
+      "webhookId": "c129b705-c370-42ac-84fa-7b27c8a76991",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "8YUdJmP9FVUoCtKe",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $fromAI('subject', 'Email subject line, used exactly as given', 'string') }}",
+        "emailType": "html",
+        "message": "={{ $fromAI('body', 'Email body, used exactly as given', 'string') }}",
+        "options": {
+          "sendTo": "your-email@example.com"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        -208,
+        96
+      ],
+      "id": "1b23d26d-6538-4960-90bf-f2f0ba6d6d2e",
+      "name": "create_email_draft",
+      "webhookId": "3ddc4ffd-c348-463e-b2cb-0d57c5f78a27",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "B0e4MVP834DfONZt",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Appends one human-approved weekly pulse entry to the Weekly Product Pulse Log. Only call after approval.",
+        "workflowId": {
+          "__rl": true,
+          "value": "kzfFnMt7t3HusFjD",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/kzfFnMt7t3HusFjD"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "entry_json": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('entry_json', `JSON array of entry blocks, passed exactly as given`, 'string') }}"
+          },
+          "matchingColumns": [
+            "entry_json"
+          ],
+          "schema": [
+            {
+              "id": "entry_json",
+              "displayName": "entry_json",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -416,
+        96
+      ],
+      "id": "cc71e9fd-d9a8-4249-a37b-26d74e28f92c",
+      "name": "append_to_pulse_log"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "create_email_draft": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "append_to_pulse_log": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d8ce17a6-9ee2-4551-a2b4-cfe00ad69eab",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "eb427415758354302b3978a905abb45ff006b681219eb6b8068f3f48e6bd369f"
+  },
+  "nodeGroups": [],
+  "id": "uN8JCAYdSVRxy9ue",
+  "tags": []
+}

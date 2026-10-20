@@ -11,13 +11,17 @@
 
 | Deliverable | Where |
 |---|---|
-| Demo video (≤3 min) | `[link]` |
-| Weekly pulse (final run) | Section 6 below + doc snippet |
-| Doc snippet | `doc_snippet.png` (entry appended to *Weekly Product Pulse Log*) |
-| Email draft | `email_draft.png` (Gmail draft, never sent) |
-| Reviews CSV sample | `reviews_sample.csv` (70 of 722 rows, stratified by source × theme, with all AI tags) |
+| Prototype (run report page) | **https://ngm76.github.io/ChatGPT-Review-Pulse---RAGs-Context-Engineering-Demo/** — every output of the final run (#32, 20 Oct 2026), the pipeline, evals and screenshots |
+| Live pulse log (Google Doc, view only) | [Weekly Product Pulse Log](https://docs.google.com/document/d/1M20MAQh9AXokbWMxprQHfIx7WI96DScTYDDu6WemYkI/edit?usp=sharing) |
+| Weekly pulse (final run) | Section 6 below + [`screenshots/doc_entry.png`](screenshots/doc_entry.png) |
+| Doc snippet | [`screenshots/doc_entry.png`](screenshots/doc_entry.png) (formatted entry added by MCP after approval) |
+| Email draft | [`screenshots/email_draft.png`](screenshots/email_draft.png) (Gmail draft created by MCP, never sent) |
+| Approval step | [`screenshots/approval_form.png`](screenshots/approval_form.png) (Gmail approval email with all checks + Approve/Reject form) |
+| Reviews CSV sample | [`reviews_sample.csv`](reviews_sample.csv) (70 of 722 rows, stratified by source × theme, with all AI tags) |
 | Source URLs | Section 8 |
-| Workflow exports | `main_workflow.json`, `mcp_server_workflow.json` (secrets removed) |
+| Workflow exports | [`workflows/`](workflows/): `main_workflow.json`, `mcp_server_workflow.json`, `append_formatted_entry.json` (secrets, email and doc ID replaced by placeholders) |
+
+> **Why a run report page instead of a live app link:** the workflow runs in a private n8n Cloud workspace (login required), so it can't be opened by a grader. The page shows the real outputs of the final run, and the workflow JSONs here can be imported to run it end to end.
 
 ---
 
@@ -43,8 +47,9 @@ REVIEWS (Data Table, 722 rows)
 
 MCP SERVER (separate workflow "Pulse Tools (MCP Server)")
   MCP Server Trigger (Bearer auth) exposes exactly two tools:
-   • append_to_pulse_log  → Google Docs: append to "Weekly Product Pulse Log"
-   • create_email_draft   → Gmail: create a DRAFT (no send tool exists)
+   • append_to_pulse_log  → helper workflow "Append formatted entry" → Google Docs API (batchUpdate):
+                            adds a formatted entry (headings, lists, links) at the TOP of "Weekly Product Pulse Log"
+   • create_email_draft   → Gmail: create an HTML DRAFT (no send tool exists)
 ```
 
 **Design principle used everywhere: the AI judges, code counts and checks.**
@@ -60,11 +65,12 @@ MCP SERVER (separate workflow "Pulse Tools (MCP Server)")
 
 1. **Data:** create a Data Table *ChatGPT Reviews Dataset* and import the reviews CSV (columns: source, review_id, date, rating, title, text, …). Add the empty tag columns: theme, theme_name, sub_theme, sub_theme_name, praise_topic, fee_related, fee_type, language, tagged_with, fee_group, fee_group_name.
 2. **Doc:** create a Google Doc *Weekly Product Pulse Log* and copy its ID.
-3. **MCP server:** import `mcp_server_workflow.json` → set the Google Docs and Gmail credentials and the doc ID in `append_to_pulse_log` → set Bearer Auth → **Publish** → copy the **Production URL**.
-4. **Main workflow:** import `main_workflow.json` → set the credentials → in **Fetch page** add the header `Authorization: Bearer <JINA_KEY>` → in both MCP Client nodes paste the Production URL and select the same Bearer credential → in **Ask for approval** set your email.
-5. Click **Execute workflow**. The run pauses at **Ask for approval** and emails you the full review.
-6. Open the email → **Respond** → choose **Approve** or **Reject** and add comments → **Submit**.
-7. **Approve** → a new entry appears at the end of the Google Doc and a Gmail **draft** is created. **Reject** → nothing is written; the rejection is logged.
+3. **Helper:** import `workflows/append_formatted_entry.json` → in the **HTTP Request** node replace `YOUR_GOOGLE_DOC_ID` and select your Google Docs credential → **Publish** → note its workflow ID (in the URL).
+4. **MCP server:** import `workflows/mcp_server_workflow.json` → in `append_to_pulse_log` set Workflow → **By ID** → the helper's ID (check *Workflow Inputs → entry_json* uses `$fromAI`) → in `create_email_draft` set your Gmail credential and recipient → set Bearer Auth → **Publish** → copy the **Production URL**.
+5. **Main workflow:** import `workflows/main_workflow.json` → set the credentials → re-select the Data Table in every Data Table node (imports keep the old table's columns) → in **Fetch page** replace `YOUR_JINA_API_KEY` → in both MCP Client nodes paste the Production URL and select the same Bearer credential → in **Ask for approval** set your email.
+6. Click **Execute workflow**. The run pauses at **Ask for approval** and emails you the full review.
+7. Open the email → **Respond** → choose **Approve** or **Reject** and add comments → **Submit**.
+8. **Approve** → a new formatted entry appears at the **top** of the Google Doc (newest first, one page per run, listed in the doc outline) and a Gmail **draft** is created. **Reject** → nothing is written; the rejection is logged.
 
 ---
 
@@ -92,21 +98,31 @@ MCP SERVER (separate workflow "Pulse Tools (MCP Server)")
 
 ## 6. Outputs
 
-### Weekly pulse (16 Oct 2026 run; 228 words, all checks passed)
-> *(Replace with the final run's text.)*
+### Weekly pulse (final run #32, 20 Oct 2026 · 227/250 words · quotes 3/3 verified · approved by PM)
 ```
-Weekly Product Pulse: ChatGPT · 16 Oct 2026
+Weekly Product Pulse: ChatGPT · 20 Oct 2026
 722 reviews · 21 Jul 2026–12 Oct 2026 · Google Play, App Store, Trustpilot
 
 TOP THEMES (by user pain)
-1. Usage limits, pricing & billing: 36% of pain, mostly usage limits and reset timers
-2. Reliability, accounts & support: 22% of pain, mostly crashes, errors and slowness
-3. Accuracy & hallucinations: 19% of pain, mostly confident but wrong answers or advice
+1. Usage limits, pricing & billing — 36% of pain, mostly usage limits and reset timers
+2. Reliability, accounts & support — 22% of pain, mostly crashes, errors and slowness
+3. Accuracy & hallucinations — 19% of pain, mostly confident but wrong answers or advice
 
 WHAT USERS SAID
-• "…" (Google Play, 1★, Sep 2026)   ×3, verified word for word
+• “Yet, a minute later, I was hit with another chat limit, this time until 8:30.” (Google Play, 1★, Sep 2026)
+• “Never managed to generate anything then activity is paused and wait to refresh.” (Google Play, 1★, Sep 2026)
+• “If it can't give you the correct answer, it will make up something that sounds plausible and state it as fact.” (Google Play, 1★, Sep 2026)
 
-KEY OBSERVATION / WHAT'S WORKING / ACTION IDEAS  (AI-written, checked)
+KEY OBSERVATION
+Usage limits and reset timers drive the largest share of pain (36.4%), causing frequent user disruption ahead of reliability and hallucination complaints.
+
+WHAT'S WORKING
+Help with studying, productivity and writing.
+
+ACTION IDEAS
+1. Show real-time usage countdown and explicit reset time within each chat session banner.
+2. Add in-app retry button and automated error reporting for crashes and slow responses.
+3. Surface low-confidence warnings and source citations for answers flagged as uncertain.
 
 Data note: no reliable trend this week; Google Play data ends 19 Sep 2026.
 ```
@@ -116,7 +132,19 @@ Data note: no reliable trend this week; Google Play data ends 19 Sep 2026.
 It's a **close call** (next: *Refund refused or not offered*, 6), so the approval email flags it. Charge confusion is spread across several types; no single type dominates.
 
 ### Customer explainer (facts only, ≤6 bullets, 2 official links)
-*(Paste the final run's explainer_text here, including "Last checked: <date>".)*
+**Why paid plan didn't activate**
+
+- ChatGPT Plus is a $20/month subscription; if you believe you were incorrectly charged you can request a refund; refunds are typically processed within 5–10 business days after approval.
+- If an Apple renewal fails, Apple may continue trying to recover it; your subscription can appear inactive in ChatGPT while Apple still attempts recovery, possibly causing duplicate charges.
+- Update your Apple payment method and allow Apple to recover the original subscription rather than starting a new subscription on a different platform to avoid duplicates.
+- Check the ChatGPT account email; on iOS/Android use Settings > Restore purchases; sign out and sign back in; contact support with the receipt or last four card digits if the issue persists.
+- To cancel: Log into ChatGPT, click your profile icon → Settings → Account → Manage → Cancel subscription.
+
+Sources:
+- https://help.openai.com/en/articles/6950777-what-is-chatgpt-plus
+- https://help.openai.com/en/articles/20001043-how-do-i-avoid-being-charged-twice-if-i-subscribe-to-chatgpt-on-ios-android-and-the-web
+
+Last checked: 20 Oct 2026
 
 ---
 
@@ -128,11 +156,12 @@ It's a **close call** (next: *Refund refused or not offered*, 6), so the approva
 | Coverage | % of non-praise reviews tagged "Other" | 9.5% (pass mark ≤20%) |
 | Tagging spot-check | Manual read of 25 tagged reviews | 23/25 agree (92%) |
 | Quotes | Code checks every quote is a continuous, word-for-word excerpt; no "…" in the middle; 6–30 words; no emails or ticket numbers | 3/3 verified; flagged fallback if not |
-| Pulse | ≤250 words; 3 actions covering the 3 top themes; every number must exist in the fact sheet; facts must be present | 228 words, pass |
+| Pulse | ≤250 words; 3 actions covering the 3 top themes; every number must exist in the fact sheet; facts must be present | 227 words, pass |
 | Fee grouping | Every fee review used exactly once; only frozen group IDs; close-call flag | 34/34 accounted for; close call flagged |
 | Retrieval eval | Did search retrieve the expected help article for the fee issue? What rank? | Found; expected page ranked 2nd (raw top page was "invoices") |
 | Explainer | 1–6 bullets; exactly 2 links, both retrieved and on the approved list; banned phrases (false promises, apologies); every number must appear in the sources | Pass |
 | Human approval | Final gate before anything is written | Approve and reject paths both tested |
+| Reproducibility | Exported all 3 workflows + data tables and re-imported them into a **fresh n8n Cloud account** | Same themes, shares, quotes and fee issue as the original account |
 
 ### What the checks and human review caught during the build
 1. **AI wrote a fluent pulse with no facts.** An empty fact sheet still produced plausible text. Fix: an input guard (fail if the facts are missing).
@@ -146,7 +175,7 @@ It's a **close call** (next: *Refund refused or not offered*, 6), so the approva
 9. **Mixing pinned and live nodes** produced mismatched outputs (old explainer vs new sources). The checks caught it twice; final runs use no pins.
 
 ### Second-opinion review of the 34 AI fee labels
-A careful read flagged 8 of 34 as likely mislabelled (5 strongly), mostly where "refund" was a *follow-up ask* after a different problem (limits, dissatisfaction, a third-party fee). *(State here whether you applied them and the final agreement %.)*
+A careful read flagged 8 of 34 as likely mislabelled (5 strongly), mostly where "refund" was a *follow-up ask* after a different problem (limits, dissatisfaction, a third-party fee). These were **not applied**: the saved AI labels are kept so every run is reproducible, and the issue is documented instead. Impact: the top fee issue is already a close call (7 vs 6), so a relabel could change the winner; the approval email flags close calls so the PM can override.
 
 ---
 
@@ -187,6 +216,7 @@ Full KB (14 pages): the above plus Pro tiers, Free tier FAQ, card declined, invo
 - **Trend:** Google Play data ends 19 Sep 2026, so there's no reliable week-on-week trend; the pulse says so.
 - **Source mix:** Trustpilot holds 49% of accuracy complaints but only 26% of reviews; App Store is 62% praise.
 - **Fee confusion is fragmented** (7 / 6 / 6 / 5): the top issue is a close call, decided by data and flagged.
+- **Explainer focus:** the final explainer is facts-only and checked, but two bullets drift from the F4 issue (refund timing and cancellation steps are true but secondary). Future: a relevance check per bullet against the fee group's description.
 - **Retrieval** relies on a hand-made "expected article" map per fee group; future: query rewriting or a reranker.
 - **Jina Reader** anonymous access is rate-limited per IP (shared on n8n Cloud); a free API key is used. Future: keep a last-good snapshot as a fallback.
 - **Quotes** are re-chosen each run (always verified); the explainer is regenerated each run (always checked).
@@ -195,6 +225,6 @@ Full KB (14 pages): the above plus Pro tiers, Free tier FAQ, card declined, invo
 ---
 
 ## 11. Security notes
-- Secrets (OpenAI, Google OAuth, Jina key, MCP Bearer token) live in n8n credentials. **They are removed from the exported JSON.**
+- Secrets (OpenAI, Google OAuth, Jina key, MCP Bearer token) live in n8n credentials. **They are removed from the exported JSON**; the Jina key, email address and doc ID are replaced with placeholders.
 - The MCP server requires a Bearer token and exposes only two tools.
 - No personal data in quotes; reviews are public and carry no author names.

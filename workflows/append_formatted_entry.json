@@ -1,0 +1,100 @@
+{
+  "name": "Append formatted entry",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "entry_json"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5e666e12-f4fb-4f46-b304-184c13bb22f4",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const blocks = JSON.parse($input.first().json.entry_json);\nconst allowed = new Set(['h1', 'h2', 'h3', 'p', 'bullet', 'number']);\nlet text = '';\nconst paras = blocks.filter(b => allowed.has(b.t) && String(b.text ?? '').length).map(b => {\n  const clean = String(b.text).replace(/\\n+/g, ' ');\n  const start = text.length; text += clean + '\\n';\n  return { ...b, text: clean, start, end: text.length };\n});\nconst BASE = 1;\nconst R = (s, e) => ({ startIndex: BASE + s, endIndex: BASE + e });\nconst STYLE = { h1: 'HEADING_1', h2: 'HEADING_2', h3: 'HEADING_3' };\nconst requests = [{ insertText: { location: { index: BASE }, text } }];\nrequests.push({ updateTextStyle: { range: R(0, text.length), textStyle: {}, fields: 'bold,italic,link,foregroundColor' } });\nrequests.push({ deleteParagraphBullets: { range: R(0, text.length) } });\nfor (const p of paras) {\n  requests.push({ updateParagraphStyle: { range: R(p.start, p.end), paragraphStyle: { namedStyleType: STYLE[p.t] || 'NORMAL_TEXT' }, fields: 'namedStyleType' } });\n}\nlet i = 0;\nwhile (i < paras.length) {\n  const t = paras[i].t;\n  if (t !== 'bullet' && t !== 'number') { i++; continue; }\n  let k = i; while (k + 1 < paras.length && paras[k + 1].t === t) k++;\n  requests.push({ createParagraphBullets: { range: R(paras[i].start, paras[k].end - 1),\n    bulletPreset: t === 'number' ? 'NUMBERED_DECIMAL_ALPHA_ROMAN' : 'BULLET_DISC_CIRCLE_SQUARE' } });\n  i = k + 1;\n}\nconst GRAY = { color: { rgbColor: { red: 0.42, green: 0.45, blue: 0.5 } } };\nfor (const p of paras) {\n  const all = R(p.start, p.end - 1);\n  if (p.bold) requests.push({ updateTextStyle: { range: all, textStyle: { bold: true }, fields: 'bold' } });\n  if (p.boldPrefix) requests.push({ updateTextStyle: { range: R(p.start, p.start + Math.min(p.boldPrefix, p.text.length)), textStyle: { bold: true }, fields: 'bold' } });\n  if (p.italic) requests.push({ updateTextStyle: { range: all, textStyle: { italic: true }, fields: 'italic' } });\n  if (p.gray) requests.push({ updateTextStyle: { range: all, textStyle: { foregroundColor: GRAY }, fields: 'foregroundColor' } });\n  if (p.link && /^https:\\/\\//.test(p.link)) requests.push({ updateTextStyle: { range: all, textStyle: { link: { url: p.link } }, fields: 'link' } });\n}\nrequests.push({ insertPageBreak: { location: { index: BASE + text.length } } });\nreturn [{ json: { requests, characters: text.length, paragraphs: paras.length } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "8177c6b6-e21e-4a7c-ab39-d304908d149a",
+      "name": "Build doc requests"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://docs.googleapis.com/v1/documents/YOUR_GOOGLE_DOC_ID:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: $json.requests }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        0
+      ],
+      "id": "30812ffe-fdb0-4bfb-9e17-db9d9fde776f",
+      "name": "HTTP Request",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "ZcxVtm6CcBbr425e",
+          "name": "Google Docs account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Build doc requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build doc requests": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "bd725f71-fec9-4247-8e55-b77fc7564849",
+  "meta": {
+    "instanceId": "eb427415758354302b3978a905abb45ff006b681219eb6b8068f3f48e6bd369f"
+  },
+  "nodeGroups": [],
+  "id": "kzfFnMt7t3HusFjD",
+  "tags": []
+}

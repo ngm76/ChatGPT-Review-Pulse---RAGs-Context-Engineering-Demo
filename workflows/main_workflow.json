@@ -1,0 +1,1754 @@
+{
+  "name": "ChatGPT Review Intelligence: Weekly Pulse + Fee Explainer (Approval-Gated)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        144
+      ],
+      "id": "74baa8e3-4b44-42f1-b4d8-c6b4cf7cd71a",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "WluKRJa4Ohu4NVg0",
+          "mode": "list",
+          "cachedResultName": "ChatGPT Reviews Dataset Milestone5",
+          "cachedResultUrl": "/projects/vKq6JT7EhpPiUoxu/datatables/WluKRJa4Ohu4NVg0"
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -272,
+        144
+      ],
+      "id": "26dfd5d2-56a0-45d5-ad9c-f9360d0e261a",
+      "name": "Data Table"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Turns 722 review rows into ONE text block for step 2a.\n// One line per review: [review_id] ★rating | title | text\nconst rows = $input.all().map(i => i.json);\nconst clean = s => String(s ?? '').replace(/\\s+/g, ' ').trim();\n\nconst lines = rows.map(r =>\n  `[${r.review_id}] ★${r.rating} | ${clean(r.title)} | ${clean(r.text)}`\n);\n\nreturn [{ json: { review_count: rows.length, reviews_block: lines.join('\\n') } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -96,
+        144
+      ],
+      "id": "af394705-00da-4672-b7a3-ed05c28aba9d",
+      "name": "Combine reviews"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-5-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a senior product insights analyst. You read app reviews and group them into clear, distinct themes that a product team can act on.\n\nTASK\nYou will receive customer reviews of ChatGPT (mobile app and website) from Google Play, the App Store and Trustpilot. Each review is one line in this format:\n[review_id] ★rating | title | text\nReviews can be about any topic: features, answer quality, reliability, limits, pricing, support, and more. Some reviews are not in English; read them, but write all your output in English.\n\nWork in two stages:\nStage 1: Read every review and note candidate topics (expect roughly 15–25).\nStage 2: Merge candidates that overlap, or that are sub-topics of each other, into AT MOST 5 final themes. Keep the merged candidates as \"sub_themes\" of the theme they belong to.\n\nRULES\n1. At most 5 themes. This is a hard limit.\n2. A theme is a TOPIC (what the review is about), not a sentiment. \"Positive feedback\" or \"complaints\" are not themes.\n3. Themes must not overlap: any review should clearly fit only one theme.\n4. Reviews with no specific topic (e.g. \"good app\", \"worst app\") belong to \"Other\". Do not list \"Other\" as one of your themes.\n5. Do not count reviews or estimate percentages.\n6. Copy example_review_ids exactly from the input. Never invent an ID. Give 3 per theme.\n7. Base everything only on the reviews provided, not on outside knowledge about ChatGPT.\n8. Many reviews are general praise. Do not let praise crowd out problems: a specific problem raised by fewer reviews (especially low-rated ones) deserves its own theme more than several variations of praise.\n9. Theme names must be plain and specific (e.g. \"Image generation limits\", not \"Generative constraint issues\").\n\nOUTPUT\nReturn only valid JSON, with no other text:\n{\n  \"themes\": [\n    {\n      \"theme_id\": \"T1\",\n      \"name\": \"short name, max 5 words\",\n      \"definition\": \"what reviews in this theme are about, max 40 words\",\n      \"includes\": \"typical issues that belong here\",\n      \"not_included\": \"related issues that belong to another theme or to Other\",\n      \"sub_themes\": [\"candidate topic merged into this theme\"],\n      \"example_review_ids\": [\"id1\", \"id2\", \"id3\"]\n    }\n  ]\n}"
+            },
+            {
+              "content": "=Here are the reviews:\n{{ $json.reviews_block }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        48,
+        144
+      ],
+      "id": "624a4219-1574-4eaa-b645-58e1959f7a7d",
+      "name": "Discover themes",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// FROZEN THEME LIST v1 — finalised by PM on 2026-10-14\n// Based on two 2a runs (5/5 themes stable). Billing grouped under T4 by PM decision.\nreturn [{ json: { themes_version: 'v1-2026-10-14', themes: [\n  { id: 'T1', name: 'Accuracy & hallucinations',\n    definition: 'Answers that are wrong, made up, biased or misleading, often stated confidently as fact.',\n    not_included: 'Ignoring instructions or losing context (T2); image problems (T3).',\n    sub_themes: { 'T1.1': 'Made-up or false facts', 'T1.2': 'Confident but wrong answers or advice', 'T1.3': 'Bias or inconsistent judgements' } },\n  { id: 'T2', name: 'Instruction & context failures',\n    definition: 'The model ignores instructions or requested formats, loses context or memory, or drifts during long or multi-step work.',\n    not_included: 'Plain factual errors (T1); crashes or lost chat history (T5).',\n    sub_themes: { 'T2.1': 'Ignores instructions or format', 'T2.2': 'Loses context or memory', 'T2.3': 'Drifts in long or multi-step work' } },\n  { id: 'T3', name: 'Image generation & editing',\n    definition: 'Problems with image quality, edits that change the wrong things, inconsistent content blocking, or image generation and upload errors.',\n    not_included: 'Image quotas or daily image limits (T4.1).',\n    sub_themes: { 'T3.1': 'Image quality and artifacts', 'T3.2': 'Edits change the wrong things', 'T3.3': 'Inconsistent image content blocking', 'T3.4': 'Image generation or upload errors' } },\n  { id: 'T4', name: 'Usage limits, pricing & billing',\n    definition: 'Usage limits and reset timers (including image limits), paid plans that feel limited or poor value, upgrade pressure or ads, and charges, renewals or refunds.',\n    not_included: 'Account deactivation or support responsiveness when money is not the core issue (T5).',\n    sub_themes: { 'T4.1': 'Usage limits and reset timers', 'T4.2': 'Paid plan limits or value', 'T4.3': 'Upgrade pressure and ads', 'T4.4': 'Charges, renewals and refunds' } },\n  { id: 'T5', name: 'Reliability, accounts & support',\n    definition: 'Crashes, errors or slowness, login and sync problems, lost chats or files, account deactivation, and unhelpful customer support.',\n    not_included: 'Complaints whose core issue is money (T4).',\n    sub_themes: { 'T5.1': 'Crashes, errors and slowness', 'T5.2': 'Login, sync and lost chats or files', 'T5.3': 'Account deactivation', 'T5.4': 'Customer support' } },\n], buckets: {\n  Praise: 'Positive review with no specific problem.',\n  Other: 'No clear topic, or fits none of the themes.' },\ntie_break: [\n  'Pick the main complaint: what the title or most of the text is about.',\n  'If the core complaint is about money (charge, refund, price, plan value), use T4 even if support was also slow.',\n  'Image limits (e.g. one image per day) go to T4.1, not T3.' ] } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        144
+      ],
+      "id": "43ae5fdf-4998-4db8-b452-ebc581b49902",
+      "name": "Frozen themes"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 2b · MAKE BATCHES — groups UNTAGGED reviews into batches of 25 (one item per batch).\n// Re-running the workflow only picks up reviews that still have no theme,\n// so any review a batch missed is retried automatically on the next run.\nconst SIZE = 25;\nconst TEST_LIMIT = 0;   // ← 1 = test with ONE batch only. Set to 0 to run ALL batches.\n\nconst frozen = $('Frozen themes').first().json;\nconst rows = $('Data Table').all().map(i => i.json).filter(r => !r.theme);\nconst clean = s => String(s ?? '').replace(/\\s+/g, ' ').trim();\n\nconst themesText =\n  frozen.themes.map(t =>\n    `${t.id} ${t.name}: ${t.definition} Not included: ${t.not_included} Sub-themes: ` +\n    Object.entries(t.sub_themes).map(([k, v]) => `${k} ${v}`).join('; ')\n  ).join('\\n') +\n  `\\nPraise: ${frozen.buckets.Praise}\\nOther: ${frozen.buckets.Other}\\n` +\n  `Tie-break rules:\\n- ${frozen.tie_break.join('\\n- ')}`;\n\nconst batches = [];\nfor (let i = 0; i < rows.length; i += SIZE) {\n  const b = rows.slice(i, i + SIZE);\n  batches.push({ json: {\n    batch_no: batches.length + 1,\n    themes_version: frozen.themes_version,\n    review_ids: b.map(r => String(r.review_id)),\n    themes_text: themesText,\n    reviews_text: b.map(r => `[${r.review_id}] ★${r.rating} | ${clean(r.title)} | ${clean(r.text)}`).join('\\n'),\n  }});\n}\nreturn TEST_LIMIT ? batches.slice(0, TEST_LIMIT) : batches;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        16
+      ],
+      "id": "0afb7168-e3b4-45c0-a63a-dd557013e822",
+      "name": "Make batches"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-5-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=You are a careful review analyst. You tag each customer review of ChatGPT using a FIXED list of themes.\n\nTHEMES (use only these IDs)\n{{ $json.themes_text }}\n\nFOR EACH REVIEW, RETURN:\n- review_id: copied exactly from the input\n- theme: one of T1, T2, T3, T4, T5, Praise, Other\n- sub_theme: one sub-theme ID from the chosen theme (e.g. \"T4.4\"); \"\" if the theme is Praise or Other\n- praise_topic: only if the theme is Praise: what the user values, in 1–3 words (e.g. \"study help\", \"writing\"); otherwise \"\"\n- fee_related: one of \"issue\", \"mention\", \"no\":\n    \"issue\": the complaint or confusion is ABOUT a ChatGPT/OpenAI charge itself: its amount, timing, renewal, double charge, charge after cancelling, refund, failed payment, tax or currency.\n    \"mention\": the reviewer says they pay, or names a price or plan, but the complaint is about something else (quality, limits, features, support).\n    \"no\": no payment or price is mentioned.\n  Only ChatGPT/OpenAI charges count. Payments to other companies are \"no\".\n- fee_type: only if fee_related is \"issue\": the specific charge issue in 2–6 words (e.g. \"Charged after cancelling\"); otherwise \"\"\n- language: the review's language as a 2-letter code (en, de, fr, …)\n\nRULES\n1. Return exactly one result for every review in the input. Do not skip any, and do not add any.\n2. Copy review_id exactly. Never invent an ID.\n3. Use the tie-break rules above when a review fits more than one theme.\n4. Judge by what the review says, not by its star rating. A 5★ review that describes a problem gets that problem's theme.\n5. A review that mixes praise with a specific complaint gets the complaint's theme.\n6. Content-policy refusals (\"violation\" or \"not allowed\" messages) when creating images belong to T3.3.\n\nOUTPUT\nReturn only valid JSON:\n{\"tags\":[{\"review_id\":\"...\",\"theme\":\"T4\",\"sub_theme\":\"T4.4\",\"praise_topic\":\"\",\"fee_related\":\"issue\",\"fee_type\":\"...\",\"language\":\"en\"}]}"
+            },
+            {
+              "content": "=Tag these reviews:\n{{ $json.reviews_text }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        672,
+        16
+      ],
+      "id": "9d47f3be-744f-4460-9ee3-9a93af0c6d7c",
+      "name": "Tag reviews",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const batches = $('Make batches').all().map(i => i.json);\nconst frozen = $('Frozen themes').first().json;\nconst validThemes = new Set([...frozen.themes.map(t => t.id), 'Praise', 'Other']);\nconst subsOf = Object.fromEntries(frozen.themes.map(t => [t.id, new Set(Object.keys(t.sub_themes))]));\n\n// NEW: ID → readable name, built from the frozen list (never from the AI)\nconst themeName = Object.fromEntries([...frozen.themes.map(t => [t.id, t.name]), ['Praise', 'Praise'], ['Other', 'Other']]);\nconst subName = Object.fromEntries(frozen.themes.flatMap(t => Object.entries(t.sub_themes)));\n\nconst getText = j => j.output?.[0]?.content?.[0]?.text ?? j.text ?? j.message?.content ?? j.content ?? '';\nconst out = []; const report = [];\n\n$input.all().forEach((item, idx) => {\n  const batch = batches[idx]; const expected = new Set(batch.review_ids);\n  let tags = [], problem = '';\n  try { const parsed = JSON.parse(getText(item.json)); tags = Array.isArray(parsed) ? parsed : (parsed.tags ?? []); }\n  catch (e) { problem = 'AI output was not valid JSON'; }\n  const seen = new Set();\n  for (const t of tags) {\n    const id = String(t.review_id ?? '').trim();\n    if (!expected.has(id) || seen.has(id)) continue;\n    if (!validThemes.has(t.theme)) continue;\n    seen.add(id);\n    const sub = subsOf[t.theme]?.has(t.sub_theme) ? t.sub_theme : '';\n    const fr = String(t.fee_related ?? '').toLowerCase().trim();\n    const fee = fr.startsWith('i') ? 'issue' : fr.startsWith('m') ? 'mention' : 'no';\n    out.push({ json: {\n      review_id: id,\n      theme: t.theme,\n      theme_name: themeName[t.theme],                 // NEW\n      sub_theme: sub,\n      sub_theme_name: sub ? subName[sub] : '',        // NEW\n      praise_topic: t.theme === 'Praise' ? String(t.praise_topic ?? '').slice(0, 40) : '',\n      fee_related: fee,\n      fee_type: fee === 'issue' ? String(t.fee_type ?? '').slice(0, 60) : '',\n      language: String(t.language ?? '').slice(0, 5).toLowerCase(),\n      tagged_with: batch.themes_version,\n      batch_no: batch.batch_no\n    }});\n  }\n  report.push({ batch: batch.batch_no, expected: expected.size, tagged: seen.size, missing: expected.size - seen.size, problem });\n});\nconsole.log('2b batch report', JSON.stringify(report));\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        16
+      ],
+      "id": "93b67161-6422-42d7-a9fd-da625fd54ca0",
+      "name": "Check & parse"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "WluKRJa4Ohu4NVg0",
+          "mode": "list",
+          "cachedResultName": "ChatGPT Reviews Dataset Milestone5",
+          "cachedResultUrl": "/projects/vKq6JT7EhpPiUoxu/datatables/WluKRJa4Ohu4NVg0"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "review_id",
+              "keyValue": "={{ $json.review_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "theme": "={{ $json.theme }}",
+            "theme_name": "={{ $json.theme_name }}",
+            "sub_theme": "={{ $json.sub_theme }}",
+            "sub_theme_name": "={{ $json.sub_theme_name }}",
+            "praise_topic": "={{ $json.praise_topic }}",
+            "fee_related": "={{ $json.fee_related }}",
+            "fee_type": "={{ $json.fee_type }}",
+            "language": "={{ $json.language }}",
+            "tagged_with": "={{ $json.tagged_with }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "review_id",
+              "displayName": "review_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "rating",
+              "displayName": "rating",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "app_version",
+              "displayName": "app_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "country",
+              "displayName": "country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "experience_date",
+              "displayName": "experience_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "theme",
+              "displayName": "theme",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sub_theme",
+              "displayName": "sub_theme",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "praise_topic",
+              "displayName": "praise_topic",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fee_related",
+              "displayName": "fee_related",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fee_type",
+              "displayName": "fee_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "language",
+              "displayName": "language",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "tagged_with",
+              "displayName": "tagged_with",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "theme_name",
+              "displayName": "theme_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sub_theme_name",
+              "displayName": "sub_theme_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1168,
+        16
+      ],
+      "id": "ff68f8b9-3e9e-41f7-9beb-2983b730b0b8",
+      "name": "Save Tags"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "WluKRJa4Ohu4NVg0",
+          "mode": "list",
+          "cachedResultName": "ChatGPT Reviews Dataset Milestone5",
+          "cachedResultUrl": "/projects/vKq6JT7EhpPiUoxu/datatables/WluKRJa4Ohu4NVg0"
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        384
+      ],
+      "id": "bb158b43-caa0-434a-abd4-b426d9d5fde0",
+      "name": "Load tagged reviews"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 2c · RANK THEMES — pure logic (no AI). Reads ALL tagged reviews, returns ONE summary item.\n// Pain points per review: 1★=4, 2★=3, 3★=2, 4★=1, 5★=0. Ranks T1–T5 by total pain.\nconst frozen = $('Frozen themes').first().json;\nconst rows = $('Load tagged reviews').all().map(i => i.json);\nconst pain = r => Math.max(0, 5 - Number(r.rating || 0));\nconst themeIds = frozen.themes.map(t => t.id);\nconst tagged = rows.filter(r => r.theme);\nconst round = (x, d = 1) => Math.round(x * 10 ** d) / 10 ** d;\n\n// ---------- 1. Theme + sub-theme ranking ----------\nconst themes = frozen.themes.map(t => {\n  const rs = tagged.filter(r => r.theme === t.id);\n  const subs = Object.entries(t.sub_themes).map(([sid, sname]) => {\n    const srs = rs.filter(r => r.sub_theme === sid);\n    return { id: sid, name: sname, reviews: srs.length, pain_points: srs.reduce((a, r) => a + pain(r), 0) };\n  }).sort((a, b) => b.pain_points - a.pain_points);\n  return {\n    id: t.id, name: t.name, definition: t.definition,\n    reviews: rs.length,\n    negative_reviews: rs.filter(r => Number(r.rating) <= 2).length,\n    avg_rating: rs.length ? round(rs.reduce((a, r) => a + Number(r.rating), 0) / rs.length, 2) : null,\n    pain_points: rs.reduce((a, r) => a + pain(r), 0),\n    sub_themes: subs,\n  };\n});\nconst totalPain = themes.reduce((a, t) => a + t.pain_points, 0) || 1;\nthemes.sort((a, b) => b.pain_points - a.pain_points)\n  .forEach((t, i) => { t.rank = i + 1; t.top3 = i < 3; t.share_of_pain_pct = round(100 * t.pain_points / totalPain); });\n\n// ---------- 2. Trend: Google Play only (B-lite) ----------\nconst dates = tagged.map(r => r.date).filter(Boolean).sort();\nconst end = new Date(dates[dates.length - 1]);\nconst recentStart = new Date(end); recentStart.setDate(end.getDate() - 27);\nconst rs0 = recentStart.toISOString().slice(0, 10);\nconst play = tagged.filter(r => r.source === 'google_play' && themeIds.includes(r.theme));\nconst playRecent = play.filter(r => r.date >= rs0), playPrev = play.filter(r => r.date < rs0);\nconst sumPain = arr => arr.reduce((a, r) => a + pain(r), 0) || 1;\nconst pPrev = sumPain(playPrev), pRecent = sumPain(playRecent);\nconst playDates = play.map(r => r.date).sort();\nconst trend = themes.map(t => {\n  const prevRows = playPrev.filter(r => r.theme === t.id), recRows = playRecent.filter(r => r.theme === t.id);\n  const prevShare = 100 * prevRows.reduce((a, r) => a + pain(r), 0) / pPrev;\n  const recShare = 100 * recRows.reduce((a, r) => a + pain(r), 0) / pRecent;\n  const change = recShare - prevShare;\n  const direction = (recRows.length < 10 || prevRows.length < 10) ? 'not enough data'\n                  : change >= 5 ? 'rising' : change <= -5 ? 'falling' : 'steady';\n  return { id: t.id, name: t.name, prev_share_pct: round(prevShare), recent_share_pct: round(recShare),\n           change_pts: round(change), prev_reviews: prevRows.length, recent_reviews: recRows.length, direction };\n});\n\n// ---------- 3. Praise, coverage (light eval), fees, by source ----------\nconst praise = tagged.filter(r => r.theme === 'Praise');\nconst praiseTopics = Object.entries(praise.reduce((m, r) => {\n  const k = String(r.praise_topic || 'unspecified').toLowerCase().trim(); m[k] = (m[k] || 0) + 1; return m; }, {}))\n  .sort((a, b) => b[1] - a[1]).slice(0, 5).map(([topic, reviews]) => ({ topic, reviews }));\nconst other = tagged.filter(r => r.theme === 'Other').length;\nconst nonPraise = tagged.length - praise.length;\nconst otherRate = nonPraise ? round(100 * other / nonPraise) : 0;\nconst bySource = {};\nfor (const r of tagged) { (bySource[r.source] ??= {}); bySource[r.source][r.theme] = (bySource[r.source][r.theme] || 0) + 1; }\n\nreturn [{ json: {\n  themes_version: frozen.themes_version,\n  window: { start: dates[0], end: dates[dates.length - 1] },\n  themes_ranked: themes,\n  top3: themes.filter(t => t.top3).map(t => ({ id: t.id, name: t.name, pain_points: t.pain_points, reviews: t.reviews, share_of_pain_pct: t.share_of_pain_pct })),\n  trend_google_play: {\n    note: 'Google Play only: the one source with enough reviews in both periods.',\n    previous_period: `${playDates[0]} to ${playPrev.length ? playPrev.map(r => r.date).sort().pop() : '-'}`,\n    recent_period: `${rs0} to ${playRecent.length ? playRecent.map(r => r.date).sort().pop() : '-'} (Play data ends here)`,\n    by_theme: trend,\n  },\n  praise: { reviews: praise.length, share_pct: round(100 * praise.length / (tagged.length || 1)), top_topics: praiseTopics },\n  coverage_eval: {\n    total_reviews: rows.length, tagged: tagged.length, untagged: rows.length - tagged.length,\n    praise: praise.length, other,\n    other_rate_excl_praise_pct: otherRate, pass_mark_pct: 20, pass: otherRate <= 20,\n  },\n  fees: {\n    issue: tagged.filter(r => r.fee_related === 'issue').length,\n    mention: tagged.filter(r => r.fee_related === 'mention').length,\n  },\n  by_source: bySource,\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        384
+      ],
+      "id": "1cb0cda3-4e61-4a6a-add4-1dd1c8e4ba12",
+      "name": "Rank themes"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 2d-i · QUOTE SHORTLIST — pure logic (no AI).\n// Decision (14 Oct): \"strongest quote, from where the theme mostly lives\" + freshness = newest first, date shown.\n// For each top-3 theme:\n//   1. dominant source(s) = source with most reviews in that theme; any source within 25% of it also counts (near-tie)\n//   2. candidates = biggest sub-theme · dominant source(s) · English · 1–2★ · 12–250 words · NEWEST FIRST\n//   3. fallbacks only if fewer than 6: other sub-themes (dominant sources) → any source → 3★\nconst rank = $('Rank themes').first().json;\nconst rows = $('Load tagged reviews').all().map(i => i.json);\nconst MAX_PER_THEME = 6;\nconst NEAR_TIE = 0.75;                       // 2nd source counts as dominant if it has ≥75% of the top source's reviews\nconst clean = s => String(s ?? '').replace(/\\s+/g, ' ').trim();\nconst words = s => clean(s).split(' ').filter(Boolean).length;\nconst newestFirst = (a, b) => String(b.date).localeCompare(String(a.date));\nconst SOURCE_LABEL = { google_play: 'Google Play', app_store: 'App Store', trustpilot: 'Trustpilot' };\n\n// newest first; if several sources, alternate between them so the AI sees both\nconst newestMixed = list => {\n  const bySrc = {};\n  for (const r of list) (bySrc[r.source] ??= []).push(r);\n  const queues = Object.values(bySrc).map(a => a.sort(newestFirst));\n  const out = [];\n  while (queues.some(q => q.length)) for (const q of queues) if (q.length) out.push(q.shift());\n  return out;\n};\n\nconst themes = rank.themes_ranked.filter(t => t.top3).map(t => {\n  const topSub = t.sub_themes[0];                                         // biggest-pain sub-theme (from 2c)\n  const srcCounts = Object.entries(rank.by_source)\n    .map(([src, counts]) => [src, counts[t.id] || 0]).sort((a, b) => b[1] - a[1]);\n  const dominant = srcCounts.filter(([, n]) => n > 0 && n >= NEAR_TIE * srcCounts[0][1]).map(([s]) => s);\n\n  const pool = rows.filter(r => r.theme === t.id && r.language === 'en'\n                             && words(r.text) >= 12 && words(r.text) <= 250);\n  const neg = r => Number(r.rating) <= 2;\n  const tiers = [\n    pool.filter(r => r.sub_theme === topSub.id && dominant.includes(r.source) && neg(r)),  // 1st choice\n    pool.filter(r => r.sub_theme !== topSub.id && dominant.includes(r.source) && neg(r)),  // fallback 1\n    pool.filter(r => r.sub_theme === topSub.id && !dominant.includes(r.source) && neg(r)), // fallback 2\n    pool.filter(r => Number(r.rating) === 3 && dominant.includes(r.source)),               // fallback 3\n  ];\n  const picked = [];\n  tiers.forEach((tier, i) => {\n    for (const r of newestMixed(tier)) {\n      if (picked.length >= MAX_PER_THEME) break;\n      if (!picked.some(p => p.review_id === r.review_id)) picked.push({ ...r, tier: i });\n    }\n  });\n\n  return {\n    theme_id: t.id, theme_name: t.name,\n    top_sub_theme: topSub.name,\n    dominant_sources: dominant.map(s => SOURCE_LABEL[s] || s),\n    candidates: picked.map(r => ({\n      review_id: String(r.review_id), source: SOURCE_LABEL[r.source] || r.source,\n      rating: Number(r.rating), date: r.date, sub_theme_name: r.sub_theme_name,\n      used_fallback: r.tier > 0, text: clean(r.text),\n    })),\n  };\n});\n\n// one text block for the AI prompt\nconst candidates_text = themes.map(t =>\n  `## ${t.theme_id} · ${t.theme_name} — biggest sub-theme: ${t.top_sub_theme}\\n` +\n  t.candidates.map(c => `[${c.review_id}] ${c.source} · ${c.rating}★ · ${c.date} · ${c.sub_theme_name}\\n${c.text}`).join('\\n\\n')\n).join('\\n\\n');\n\nreturn [{ json: {\n  themes,\n  candidates_text,\n  shortlist_check: themes.map(t => ({\n    theme: t.theme_name, dominant_sources: t.dominant_sources, candidates: t.candidates.length,\n    newest: t.candidates[0]?.date, oldest: t.candidates.at(-1)?.date,\n    fallbacks_used: t.candidates.filter(c => c.used_fallback).length,\n  })),\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        848,
+        384
+      ],
+      "id": "13c0afe1-5f22-44a2-aefd-e3200d5d42b3",
+      "name": "Quote shortlist"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-5-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a senior user-research analyst preparing evidence for an internal product report about ChatGPT.\n\nYou will receive up to three sections. Each section is one product theme, with its biggest sub-theme and a shortlist of real user reviews. Each review starts with [review_id], then source, star rating, date and sub-theme.\n\nFor EACH section, choose exactly ONE review and cut ONE short quote from it.\n\nHOW TO CHOOSE THE REVIEW\n1. The quote must clearly prove the section's biggest sub-theme.\n2. Prefer specific over generic: concrete moments, numbers or consequences (\"says I hit the limit after two messages\") beat general anger (\"worst app ever\").\n3. The quote must make sense on its own, without the rest of the review.\n4. If two reviews are equally strong, prefer the newer one; then prefer a source you have not already used in another section.\n5. Only use reviews listed in that section. Copy the review_id exactly.\n\nHOW TO CUT THE QUOTE\n6. Copy ONE continuous piece of the review text, exactly as written: same words, spelling, grammar, capitalisation and punctuation. Do not fix typos. Do not add, remove, replace or reorder any word.\n7. Length: 8 to 30 words.\n8. Start and end on whole words. If you trimmed text before the quote, start it with \"…\". If you trimmed text after it, end it with \"…\".\n9. Never put \"…\" in the middle. Never join two separate parts of a review.\n10. If a review mixes several complaints, quote only the part about this section's sub-theme.\n11. Never include personal names, email addresses, phone numbers, or ticket, order or account numbers. Choose a part without them, or another review.\n\nOUTPUT\nReturn only JSON in this exact shape:\n{\"quotes\":[{\"theme_id\":\"T4\",\"review_id\":\"<exact id>\",\"quote\":\"<the quote>\",\"why\":\"<max 15 words: why this quote proves the sub-theme>\"}]}"
+            },
+            {
+              "content": "=Here are the sections and their shortlisted reviews:\n{{ $json.candidates_text }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1008,
+        384
+      ],
+      "id": "b877de07-af4b-40a2-af95-9b8ce7c53250",
+      "name": "Pick quotes",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 2d-iii · CHECK QUOTES — pure logic. Verifies every AI quote against the real review.\n// Rules checked: review is in that theme's shortlist · one continuous piece, word for word ·\n// \"…\" only at the edges · 6–30 words · no emails / ticket-style numbers.\n// If a quote fails, a safe fallback is cut by code from the same review (or the top candidate),\n// and it's flagged so the approver sees it.\nconst short = $('Quote shortlist').first().json;\nconst j = $input.first().json;\nconst getText = x => x.output?.[0]?.content?.[0]?.text ?? x.text ?? x.message?.content ?? x.content ?? '';\nlet ai = [];\ntry { const p = JSON.parse(getText(j)); ai = Array.isArray(p) ? p : (p.quotes ?? []); } catch (e) { ai = []; }\n\nconst MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];\nconst monthLabel = d => { const [y, m] = String(d).split('-'); return `${MONTHS[Number(m) - 1]} ${y}`; };\nconst norm = s => String(s ?? '').replace(/[\\u2018\\u2019]/g, \"'\").replace(/[\\u201C\\u201D]/g, '\"')\n                                 .replace(/\\s+/g, ' ').trim().toLowerCase();\nconst stripEdges = s => String(s ?? '').trim().replace(/^(\\u2026|\\.\\.\\.)\\s*/, '').replace(/\\s*(\\u2026|\\.\\.\\.)$/, '').trim();\nconst wordCount = s => stripEdges(s).split(/\\s+/).filter(Boolean).length;\nconst PII = /[\\w.+-]+@[\\w-]+\\.[\\w.]+|#\\s?\\d{4,}|\\d{6,}/;          // emails, #1234-style refs, long numbers\n\n// fallback: first sentence of the review, cut to 30 words — always verbatim\nconst fallbackQuote = text => {\n  const first = (text.match(/^.*?[.!?](\\s|$)/) || [text])[0].trim();\n  const w = first.split(/\\s+/);\n  const cut = w.length > 30 ? w.slice(0, 30).join(' ') : first;\n  return cut + ((w.length > 30 || cut.length < text.trim().length) ? '…' : '');\n};\n\nconst quotes = short.themes.map(t => {\n  const a = ai.find(q => String(q.theme_id).trim() === t.theme_id) || {};\n  const problems = [];\n  let cand = t.candidates.find(c => c.review_id === String(a.review_id ?? '').trim());\n  if (!a.quote) problems.push('AI gave no quote for this theme');\n  if (!cand) problems.push('review_id not in this theme\\'s shortlist');\n  const core = stripEdges(a.quote);\n  if (cand && a.quote) {\n    if (/(\\u2026|\\.\\.\\.)/.test(core)) problems.push('\"…\" in the middle (stitched quote)');\n    else if (!norm(cand.text).includes(norm(core))) problems.push('not word-for-word in the review');\n    const wc = wordCount(a.quote);\n    if (wc < 6 || wc > 30) problems.push(`length ${wc} words (allowed 6–30)`);\n    if (PII.test(core)) problems.push('contains an email or ticket/order number');\n  }\n  let quote = a.quote, fallback = false;\n  if (problems.length) {                       // safe fallback, clearly flagged\n    cand = cand || t.candidates[0];\n    quote = fallbackQuote(cand.text);\n    fallback = true;\n  }\n  return {\n    theme_id: t.theme_id, theme_name: t.theme_name, sub_theme: t.top_sub_theme,\n    review_id: cand.review_id, source: cand.source, rating: cand.rating, date: cand.date,\n    quote,\n    attribution: `(${cand.source}, ${cand.rating}★, ${monthLabel(cand.date)})`,\n    why: fallback ? '' : String(a.why ?? ''),\n    status: fallback ? 'FALLBACK — check before approving' : 'verified',\n    problems,\n  };\n});\n\nreturn [{ json: {\n  quotes,\n  quotes_check: {\n    verified: quotes.filter(q => q.status === 'verified').length,\n    fallback: quotes.filter(q => q.status !== 'verified').length,\n    all_verified: quotes.every(q => q.status === 'verified'),\n  },\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1296,
+        384
+      ],
+      "id": "d1e1de1a-73bb-4afe-bd2c-2ba5d85146b2",
+      "name": "Check quotes"
+    },
+    {
+      "parameters": {
+        "jsCode": "const FEE_GROUPS = {\n  F1: { name: 'Charged after cancelling or unable to cancel', description: 'Users were billed after cancelling, or could not find how to cancel and stop recurring charges.' },\n  F2: { name: 'Refund refused or not offered', description: 'Users asked for money or credits back for a charge and were refused or got no answer.' },\n  F3: { name: 'Double or unexpected charges', description: 'Users saw a duplicate, unauthorised, auto-upgraded or otherwise unexpected charge.' },\n  F4: { name: 'Paid but plan not active or access lost', description: 'Users paid but the paid plan did not activate, or paid access disappeared.' },\n  F5: { name: 'Payment failed or card declined', description: 'Users could not pay or renew because the payment failed or the card was declined.' },\n  F6: { name: 'Tax, currency or invoice confusion', description: 'Users were confused by taxes, currency conversion, invoice dates or billing details.' },\n};\nconst rows = $('Load tagged reviews').all().map(i => i.json);\nconst clean = s => String(s ?? '').replace(/\\s+/g, ' ').trim();\nconst cap = (s, n) => { const w = clean(s).split(' '); return w.length > n ? w.slice(0, n).join(' ') + ' …' : clean(s); };\nconst feeAll = rows.filter(r => r.fee_related === 'issue');\nconst untagged = feeAll.filter(r => !clean(r.fee_group)).sort((a, b) => String(b.date).localeCompare(String(a.date)));\nconst stored = feeAll.filter(r => clean(r.fee_group)).map(r => ({ review_id: String(r.review_id), group: clean(r.fee_group) }));\nconst groups_text = Object.entries(FEE_GROUPS).map(([id, g]) => `${id} ${g.name}: ${g.description}`).join('\\n') +\n  '\\nX Not a charge confusion (price or value complaint, usage limits, feature complaint, not about a ChatGPT/OpenAI charge)';\nconst fee_text = untagged.length\n  ? untagged.map(r => `[${r.review_id}] ${r.rating}★ · label: ${clean(r.fee_type)}\\n${cap(`${r.title ?? ''}. ${r.text}`, 80)}`).join('\\n\\n')\n  : '(no new reviews — return {\"tags\":[]})';\nreturn [{ json: { fee_groups: FEE_GROUPS, groups_text, fee_count: untagged.length,\n  fee_ids: untagged.map(r => String(r.review_id)), stored, total_fee_reviews: feeAll.length, fee_text } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1456,
+        384
+      ],
+      "id": "eefabab0-dfed-4fcd-985c-f8a515d8edf4",
+      "name": "Fee list"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-5-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a billing-support analyst for ChatGPT. You will receive a fixed list of charge-confusion groups and a set of user reviews about ChatGPT or OpenAI charges. Each review starts with [review_id], the star rating, and a short label from an earlier tagging step.\n\nYour job: give EACH review exactly one group ID from the list (F1 to F6), or X if it is not a charge confusion.\n\nWHAT COUNTS AS CHARGE CONFUSION\nThe user did not expect, understand or agree with a charge, or cannot get money or access they believe they paid for.\n\nUSE X (NOT A CHARGE CONFUSION) FOR\n- The price is too high or not worth it.\n- Hitting usage limits, message caps or blocks on a paid plan, unless the user says they were charged unexpectedly because of it.\n- Disappointing features, without any surprise about the charge itself.\n- Anything that is not about a ChatGPT or OpenAI charge.\n\nRULES\n1. Use ONLY the IDs F1, F2, F3, F4, F5, F6 or X. Never invent a new group.\n2. Judge the MAIN charge problem. If a review mentions a limit AND a refused refund, use F2.\n3. Every review gets exactly one tag. Copy review_ids exactly.\n4. Do not count or rank. Counting is done later by code.\n\nOUTPUT\nReturn only JSON:\n{\"tags\":[{\"review_id\":\"...\",\"group\":\"F1\",\"reason\":\"max 8 words\"}]}"
+            },
+            {
+              "content": "=Groups:\n{{ $json.groups_text }}\n\nReviews ({{ $json.fee_count }}):\n{{ $json.fee_text }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1600,
+        384
+      ],
+      "id": "50b427e7-bd92-424b-a533-cefcaa2f16b5",
+      "name": "Group fee issues",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const list = $('Fee list').first().json;\nconst G = list.fee_groups;\nconst rows = $('Load tagged reviews').all().map(i => i.json);\nconst byId = Object.fromEntries(rows.map(r => [String(r.review_id), r]));\nconst SOURCE_LABEL = { google_play: 'Google Play', app_store: 'App Store', trustpilot: 'Trustpilot' };\nconst getText = x => x.output?.[0]?.content?.[0]?.text ?? x.text ?? x.message?.content ?? x.content ?? '';\nlet aiTags = [];\ntry { const p = JSON.parse(getText($input.first().json)); aiTags = Array.isArray(p) ? p : (p.tags ?? []); } catch (e) { aiTags = []; }\n\nconst newIds = new Set(list.fee_ids), seen = new Set(), problems = [], new_tags = [];\nconst members = Object.fromEntries(Object.keys(G).map(k => [k, []]));\nconst excluded = [];\nconst place = (id, g, reason) => {\n  if (g === 'X') { excluded.push({ review_id: id, reason }); return true; }\n  if (!G[g]) return false;\n  members[g].push(id); return true;\n};\nfor (const s of list.stored) { seen.add(s.review_id); if (!place(s.review_id, s.group.toUpperCase(), 'saved earlier')) problems.push(`bad saved group \"${s.group}\" for ${s.review_id}`); }\nfor (const t of aiTags) {\n  const id = String(t.review_id ?? '').trim(), g = String(t.group ?? '').trim().toUpperCase();\n  if (!newIds.has(id)) { problems.push(`unknown or already-saved id ${id} ignored`); continue; }\n  if (seen.has(id)) { problems.push(`id ${id} tagged twice, kept first`); continue; }\n  if (!place(id, g, String(t.reason ?? ''))) { problems.push(`unknown group \"${g}\" for ${id}`); continue; }\n  seen.add(id); new_tags.push({ review_id: id, group: g });\n}\nconst unassigned = list.fee_ids.filter(id => !seen.has(id));\nif (unassigned.length) problems.push(`${unassigned.length} new fee review(s) not tagged by the AI`);\n\nconst pain = r => Math.max(0, 5 - Number(r.rating || 0));\nconst groups = Object.entries(members).filter(([, ids]) => ids.length).map(([gid, ids]) => {\n  const rs = ids.map(id => byId[id]).filter(Boolean);\n  return {\n    group_id: gid, name: G[gid].name, description: G[gid].description,\n    reviews: ids.length, pain_points: rs.reduce((a, r) => a + pain(r), 0),\n    newest: rs.map(r => r.date).sort().pop() ?? '',\n    sources: [...new Set(rs.map(r => SOURCE_LABEL[r.source] || r.source))],\n    review_ids: ids,\n  };\n}).sort((a, b) => b.reviews - a.reviews || b.pain_points - a.pain_points || b.newest.localeCompare(a.newest));\n\nconst PM_PICK = '';\nconst PM_REASON = 'Close call; refund refusal is also the follow-up complaint in several other fee reviews.';\nconst closeCall = groups.length > 1 && groups[0].reviews - groups[1].reviews <= 2;\nlet top = groups[0], selected_by = 'data (most reviews)';\nconst contenders = groups.filter(g => groups[0].reviews - g.reviews <= 2);\nif (closeCall && PM_PICK && contenders.some(g => g.group_id === PM_PICK)) {\n  top = groups.find(g => g.group_id === PM_PICK); selected_by = `PM decision on a close call: ${PM_REASON}`;\n}\nconst total = groups.reduce((a, g) => a + g.reviews, 0);\nreturn [{ json: {\n  identified_fee_issue: top ? {\n    group_id: top.group_id, name: top.name, description: top.description,\n    reviews: top.reviews, share_of_confusion_pct: Math.round(1000 * top.reviews / total) / 10,\n    sources: top.sources, review_ids: top.review_ids, selected_by,\n  } : null,\n  rag_query: top ? `${top.name}. ${top.description}` : '',\n  groups_ranked: groups.map(({ review_ids, ...g }) => g),\n  excluded,\n  new_tags,\n  fee_check: {\n    fee_reviews: list.total_fee_reviews, saved_before: list.stored.length, newly_tagged: new_tags.length,\n    in_groups: total, excluded: excluded.length,\n    unassigned: unassigned.length, all_accounted_for: unassigned.length === 0 && problems.length === 0, problems,\n    clear_winner: !closeCall, close_call: closeCall,\n  },\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        384
+      ],
+      "id": "e1b40007-8cf9-494b-9933-0c2c72fe22a4",
+      "name": "Pick fee issue"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rank = $('Rank themes').first().json;\nconst q = $('Check quotes').first().json.quotes;\nconst rows = $('Load tagged reviews').all().map(i => i.json);\nconst MAX_WORDS = 250;\nconst M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];\nconst nice = d => { const [y, m, dd] = String(d).split('-'); return `${Number(dd)} ${M[Number(m) - 1]} ${y}`; };\nconst words = s => String(s).split(/\\s+/).filter(Boolean).length;\nconst runDate = new Date().toISOString().slice(0, 10);\nconst top = rank.themes_ranked.filter(t => t.top3);\nconst lc = s => s.charAt(0).toLowerCase() + s.slice(1);\n\nconst header = `Weekly Product Pulse: ChatGPT · ${nice(runDate)}\\n` +\n  `${rank.coverage_eval.total_reviews} reviews · ${nice(rank.window.start)}–${nice(rank.window.end)} · Google Play, App Store, Trustpilot`;\nconst themesBlock = 'TOP THEMES (by user pain)\\n' + top.map((t, i) =>\n  `${i + 1}. ${t.name}: ${Math.round(t.share_of_pain_pct)}% of pain, mostly ${lc(t.sub_themes[0].name)}`).join('\\n');\nconst quotesBlock = 'WHAT USERS SAID\\n' + q.map(x => `• \"${x.quote}\" ${x.attribution}`).join('\\n');\nconst playEnd = rows.filter(r => r.source === 'google_play').map(r => r.date).sort().pop();\nconst moving = rank.trend_google_play.by_theme.filter(t => t.direction === 'rising' || t.direction === 'falling');\nconst dataNote = 'Data note: ' + (moving.length\n  ? moving.map(t => `${t.name} ${t.direction} (Google Play)`).join('; ') + '.'\n  : `no reliable trend this week; Google Play data ends ${nice(playEnd)}.`);\n\nconst fixedWords = words(header) + words(themesBlock) + words(quotesBlock) + words(dataNote) + 6;\nconst aiBudget = MAX_WORDS - fixedWords - 5;\n\nconst facts = [\n  `Top themes ranked by user pain (share of all pain, reviews, average stars, biggest sub-themes):`,\n  ...top.map(t => `- ${t.id} ${t.name}: ${t.share_of_pain_pct}% of pain, ${t.reviews} reviews, avg ${t.avg_rating}★. ` +\n      `Sub-themes: ${t.sub_themes.slice(0, 3).map(s => `${s.name} (${s.reviews})`).join(', ')}.`),\n  `Other themes: ${rank.themes_ranked.filter(t => !t.top3).map(t => `${t.name} ${t.share_of_pain_pct}%`).join(', ')}.`,\n  `Praise: ${rank.praise.reviews} reviews (${rank.praise.share_pct}%). Top praise topics: ${rank.praise.top_topics.map(p => `${p.topic} (${p.reviews})`).join(', ')}.`,\n  `Verified quotes already shown in the pulse: ${q.map(x => `\"${x.quote}\"`).join(' | ')}`,\n  `Trend: ${dataNote.replace('Data note: ', '')}`,\n].join('\\n');\n\nreturn [{ json: {\n  run_date: runDate, header, themesBlock, quotesBlock, dataNote,\n  top_theme_ids: top.map(t => t.id),\n  fixed_words: fixedWords, ai_budget: aiBudget, facts,\n  top_themes: top.map(t => `${t.name} (${Math.round(t.share_of_pain_pct)}% of pain)`).join('; '),\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2048,
+        384
+      ],
+      "id": "e79c63c2-09a3-4431-98d5-12cbdc935d57",
+      "name": "Pulse facts"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-5-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=You are a senior product manager writing the judgement parts of an internal weekly pulse about ChatGPT user reviews, for the product and leadership team.\n\nThe numbers, themes and quotes are already written by code. You write ONLY three parts:\n1. key_observation: the single most important insight a product leader should take away. Connect the facts (for example volume versus intensity, or what the biggest sub-theme reveals). Do not just repeat the theme list.\n2. whats_working: one line on what users value most, based on the praise topics.\n3. actions: exactly 3 action ideas, one for EACH top theme (use its theme_id). Each starts with a verb, is concrete and testable, and is something a product team could start next sprint.\n\nRULES\n- Use only the facts provided. Do not invent numbers; if you use a number, copy it exactly from the facts.\n- Do not repeat the quotes.\n- Each action must aim to REDUCE the pain described in that theme's biggest sub-theme (for usage limits: make limits clearer, fairer or less disruptive, never stricter or longer).\n- Neutral, professional tone. No blame, no hype, no promises about pricing.\n- Word limits: key_observation max 30 words, whats_working max 15 words, each action max 16 words. All three parts together must stay within {{ $json.ai_budget }} words.\n\nReturn only JSON:\n{\"key_observation\":\"...\",\"whats_working\":\"...\",\"actions\":[{\"theme_id\":\"T4\",\"idea\":\"...\"},{\"theme_id\":\"T5\",\"idea\":\"...\"},{\"theme_id\":\"T1\",\"idea\":\"...\"}]}"
+            },
+            {
+              "content": "=Facts:\n{{ $json.facts }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        2208,
+        384
+      ],
+      "id": "efbd19fe-bf17-4e99-ae0a-980f174e78d0",
+      "name": "Write pulse",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const f = $('Pulse facts').first().json;\nconst getText = x => x.output?.[0]?.content?.[0]?.text ?? x.text ?? x.message?.content ?? x.content ?? '';\nlet ai = {};\ntry { ai = JSON.parse(getText($input.first().json)); } catch (e) { ai = {}; }\nconst words = s => String(s ?? '').split(/\\s+/).filter(Boolean).length;\nconst clean = s => String(s ?? '').replace(/\\s+/g, ' ').trim();\n\nconst obs = clean(ai.key_observation), working = clean(ai.whats_working);\nconst actions = (ai.actions ?? []).slice(0, 3).map(a => ({ theme_id: String(a.theme_id ?? '').trim(), idea: clean(a.idea) }));\n\nconst weekly_pulse = [\n  f.header, '', f.themesBlock, '', f.quotesBlock, '',\n  `KEY OBSERVATION\\n${obs}`, '',\n  `WHAT'S WORKING\\n${working}`, '',\n  'ACTION IDEAS\\n' + actions.map((a, i) => `${i + 1}. ${a.idea}`).join('\\n'), '',\n  f.dataNote,\n].join('\\n');\n\nconst problems = [];\nif (!f.facts || !f.ai_budget) problems.push('fact sheet missing: AI wrote without facts');\nconst total = words(weekly_pulse);\nif (total > 250) problems.push(`pulse is ${total} words (max 250)`);\nif (!obs) problems.push('key observation missing');\nif (!working) problems.push(\"what's working missing\");\nif (actions.length !== 3 || actions.some(a => !a.idea)) problems.push('need exactly 3 action ideas');\nconst covered = new Set(actions.map(a => a.theme_id));\nif (!(f.top_theme_ids || []).every(id => covered.has(id))) problems.push('action ideas do not cover all 3 top themes');\nconst aiText = [obs, working, ...actions.map(a => a.idea)].join(' ');\nconst factNums = new Set((String(f.facts || '').match(/\\d+(\\.\\d+)?/g) || []));\nconst newNums = (aiText.match(/\\d+(\\.\\d+)?/g) || []).filter(n => !factNums.has(n));\nif (newNums.length) problems.push(`numbers not in the facts: ${[...new Set(newNums)].join(', ')}`);\n\nreturn [{ json: {\n  weekly_pulse,\n  top_themes: f.top_themes,\n  word_count: total,\n  pulse_check: { passed: problems.length === 0, word_count: total, max_words: 250, problems },\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        384
+      ],
+      "id": "cd53356e-a18e-4cc0-988f-fd577febbc47",
+      "name": "Assemble pulse"
+    },
+    {
+      "parameters": {
+        "jsCode": "const today = new Date().toISOString().slice(0, 10);\nconst PAGES = [\n  ['https://openai.com/chatgpt/pricing/', 'ChatGPT pricing'],\n  ['https://learn.chatgpt.com/docs/pricing', 'ChatGPT pricing docs'],\n  ['https://help.openai.com/en/articles/6950777-what-is-chatgpt-plus', 'What is ChatGPT Plus'],\n  ['https://help.openai.com/en/articles/9793128-about-chatgpt-pro-tiers', 'About ChatGPT Pro tiers'],\n  ['https://help.openai.com/en/articles/9275245-chatgpt-free-tier-faq', 'ChatGPT Free tier FAQ'],\n  ['https://help.openai.com/en/articles/7232927-canceling-your-chatgpt-subscription', 'Canceling your ChatGPT subscription'],\n  ['https://help.openai.com/en/articles/7232895-how-do-i-request-a-refund-for-my-chatgpt-subscription', 'How do I request a refund for my ChatGPT subscription'],\n  ['https://help.openai.com/en/articles/20001043-how-do-i-avoid-being-charged-twice-if-i-subscribe-to-chatgpt-on-ios-android-and-the-web', 'How to avoid being charged twice (iOS, Android, web)'],\n  ['https://help.openai.com/en/articles/7242622-why-did-my-chatgpt-plus-or-chatgpt-pro-renewal-transaction-fail', 'Why did my Plus or Pro renewal fail'],\n  ['https://help.openai.com/en/articles/7232916-why-was-my-credit-card-declined', 'Why was my credit card declined'],\n  ['https://help.openai.com/en/articles/8156167-invoice-dates-for-chatgpt-and-api-billing', 'Invoice dates for ChatGPT and API billing'],\n  ['https://help.openai.com/en/articles/12356340-how-can-i-find-my-past-chatgpt-invoices', 'How can I find my past ChatGPT invoices'],\n  ['https://help.openai.com/en/articles/10421635-multicurrency-billing', 'Multicurrency billing'],\n  ['https://help.openai.com/en/articles/9038389-updating-billing-information-tax-id-and-vat-id', 'Updating billing information, tax ID and VAT ID'],\n];\nreturn PAGES.map(([url, page_name]) => ({ json: { url, page_name, fetched_at: today } }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        384
+      ],
+      "id": "e50979fa-2f4f-47a0-a39f-d524c1bbd2ce",
+      "name": "KB pages"
+    },
+    {
+      "parameters": {
+        "url": "=https://r.jina.ai/{{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_JINA_API_KEY"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2784,
+        384
+      ],
+      "id": "b6cf265f-53f5-4895-985b-21aa0bbbb9fb",
+      "name": "Fetch page",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const pages = $('KB pages').all().map(i => i.json);\nconst out = [], failed = [];\n$input.all().forEach((item, idx) => {\n  const p = pages[idx];\n  const raw = typeof item.json.data === 'string' ? item.json.data : '';\n  if (!raw || item.json.error) { failed.push(p.page_name); return; }\n  const titleMatch = raw.match(/^Title:\\s*(.+)$/m);\n  const body = raw.includes('Markdown Content:') ? raw.split('Markdown Content:').slice(1).join(' ') : raw;\n  const content = body\n    .replace(/!\\[[^\\]]*\\]\\([^)]*\\)/g, ' ')\n    .replace(/\\[([^\\]]*)\\]\\([^)]*\\)/g, '$1')\n    .replace(/^[ \\t]*[-*=_#]{3,}[ \\t]*$/gm, ' ')\n    .replace(/[ \\t]+/g, ' ')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim()\n    .slice(0, 15000);\n  if (content.length < 300) { failed.push(`${p.page_name} (too short)`); return; }\n  out.push({ json: {\n    url: p.url, title: (titleMatch?.[1] || p.page_name).trim(), page_name: p.page_name,\n    fetched_at: p.fetched_at, chars: content.length, content,\n  }});\n});\nconsole.log(`KB: ${out.length} of ${pages.length} pages fetched`, failed.length ? `· failed: ${failed.join(', ')}` : '');\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2944,
+        384
+      ],
+      "id": "44ba4a2e-6423-4746-a48c-361912dd16c0",
+      "name": "Clean pages"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        2880,
+        624
+      ],
+      "id": "7037764b-8331-4ec9-a1bc-4e7fa0bd42d6",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.content }}",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "url",
+                "value": "={{ $json.url }}"
+              },
+              {
+                "name": "title",
+                "value": "={{ $json.page_name }}"
+              },
+              {
+                "name": "fetched_at",
+                "value": "={{ $json.fetched_at }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        3104,
+        624
+      ],
+      "id": "9a729be0-9db4-4f42-9d84-257bf22c1458",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        3872,
+        592
+      ],
+      "id": "843d65c7-aabd-4201-bb7c-2bf51e3fe2a1",
+      "name": "Embeddings OpenAI1",
+      "executeOnce": true,
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "load",
+        "memoryKey": {
+          "__rl": true,
+          "mode": "list",
+          "value": "vector_store_key"
+        },
+        "prompt": "={{ $('Pick fee issue').first().json.rag_query }}",
+        "topK": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        3408,
+        384
+      ],
+      "id": "1f9f01c1-3eaf-43b0-91b2-8e809c258004",
+      "name": "Retrieve KB"
+    },
+    {
+      "parameters": {
+        "jsCode": "const issue = $('Pick fee issue').first().json.identified_fee_issue;\nconst kb = $('KB pages').all().map(i => i.json);\nconst APPROVED = new Set(kb.map(p => p.url));\nconst H = 'https://help.openai.com/en/articles/';\nconst EXPECTED = {\n  F1: [H + '7232927-canceling-your-chatgpt-subscription'],\n  F2: [H + '7232895-how-do-i-request-a-refund-for-my-chatgpt-subscription'],\n  F3: [H + '20001043-how-do-i-avoid-being-charged-twice-if-i-subscribe-to-chatgpt-on-ios-android-and-the-web'],\n  F4: [H + '6950777-what-is-chatgpt-plus',\n       H + '20001043-how-do-i-avoid-being-charged-twice-if-i-subscribe-to-chatgpt-on-ios-android-and-the-web',\n       H + '7242622-why-did-my-chatgpt-plus-or-chatgpt-pro-renewal-transaction-fail'],\n  F5: [H + '7232916-why-was-my-credit-card-declined', H + '7242622-why-did-my-chatgpt-plus-or-chatgpt-pro-renewal-transaction-fail'],\n  F6: [H + '10421635-multicurrency-billing', H + '8156167-invoice-dates-for-chatgpt-and-api-billing',\n       H + '12356340-how-can-i-find-my-past-chatgpt-invoices', H + '9038389-updating-billing-information-tax-id-and-vat-id'],\n};\nconst norm = j => ({ text: String(j.document?.pageContent ?? j.pageContent ?? '').trim(),\n                     meta: j.document?.metadata ?? j.metadata ?? {}, score: Number(j.score ?? 0) });\nconst seen = new Set();\nconst ranked = $input.all().map(i => norm(i.json))\n  .filter(c => c.text && !seen.has(c.text) && seen.add(c.text))\n  .sort((a, b) => b.score - a.score);\nconst pageOrder = [...new Set(ranked.map(c => c.meta.url))];\nconst expected = EXPECTED[issue?.group_id] ?? [];\nconst firstExpected = expected.find(u => pageOrder.includes(u));   // expected list is in priority order\n// main source = the highest-priority EXPECTED page for this fee issue that retrieval actually found\nconst topPage = firstExpected || pageOrder[0];\nconst otherPages = [...pageOrder.filter(u => u !== topPage && expected.includes(u)),   // other expected pages first\n                    ...pageOrder.filter(u => u !== topPage && !expected.includes(u))].slice(0, 2);\nconst stored = $('Store KB').all().map(i => norm(i.json));\nconst topChunks = stored.filter(c => c.meta.url === topPage).map(c => c.text);\nconst titleOf = u => (stored.find(c => c.meta.url === u) || ranked.find(c => c.meta.url === u))?.meta.title || u;\nconst sources = [topPage, ...otherPages].map((u, i) => ({ id: `S${i + 1}`, url: u, title: titleOf(u) }));\nconst blocks = [\n  `[S1 · ${titleOf(topPage)} · full page]\\n${topChunks.join('\\n')}`,\n  ...otherPages.map((u, i) => `[S${i + 2} · ${titleOf(u)} · excerpt]\\n${ranked.find(c => c.meta.url === u).text}`),\n];\nconst context_text = blocks.join('\\n\\n---\\n\\n');\nconst links_text = sources.map(s => `${s.id}: ${s.title} — ${s.url}`).join('\\n');\nconst fetched_at = ranked[0]?.meta.fetched_at || kb[0]?.fetched_at;\nreturn [{ json: {\n  fee_issue: issue?.name ?? '', fee_issue_description: issue?.description ?? '',\n  context_text, links_text,\n  allowed_links: sources.map(s => s.url).filter(u => APPROVED.has(u)),\n  fetched_at,\n  retrieval_check: {\n    main_page: titleOf(topPage), main_page_chunks: topChunks.length,\n    other_pages: otherPages.map(titleOf), context_chars: context_text.length,\n    raw_top_page: titleOf(pageOrder[0]),\n    expected_article_found: Boolean(firstExpected),\n    expected_page_rank: firstExpected ? pageOrder.indexOf(firstExpected) + 1 : null,\n    top_score: Math.round((ranked[0]?.score ?? 0) * 1000) / 1000,\n  },\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3696,
+        384
+      ],
+      "id": "73d08fc9-f6c8-45c1-801a-eee6ead70b32",
+      "name": "Explainer context"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-5-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You write short, customer-facing explainers about ChatGPT billing, using ONLY official OpenAI help-page excerpts.\n\nYou will receive:\n- a recurring charge confusion that users report in reviews\n- numbered source excerpts [S1], [S2] … from official help pages\n- the list of allowed source links\n\nWrite a neutral, facts-only explainer that helps a confused customer understand the rules and what they can do.\n\nCONTENT RULES\n1. Use ONLY facts stated in the excerpts. Never add outside knowledge, assumptions or advice.\n2. At most 6 bullets. Each bullet is one fact or one step, max 30 words, written to the customer (\"you\").\n3. Where the excerpts support it, cover: the policy in plain words, when an exception may apply, what cancelling does and does not do, how to request help, and how long it takes.\n4. Focus on individual subscriptions. Ignore rules that apply only to Business, Enterprise or Education workspaces.\n5. Region-specific rules: at most one bullet, only if the excerpts state them.\n5a. Start with the general policy and the situations where the excerpts say a refund or exception may apply.\n5b. If a detail (such as processing time) differs by purchase platform, name the platform for each value, or leave the detail out.\n\nTONE RULES\n6. Neutral and factual. No apologies, no blame, no marketing language, no opinions.\n7. No false promises. Keep the excerpts' own conditional wording (\"generally\", \"may be available\", \"may be approved\"). Never say a refund will be given.\n8. Copy numbers (days, amounts) exactly as the excerpts state them.\n8a. Do not add limiting words such as \"only\", \"always\" or \"never\" unless the excerpts use them.\n\nLINKS\n9. Choose exactly 2 different links from the allowed list: the two pages that best support your bullets.\n10. Every bullet must be supported by one of the 2 pages you link. Write naturally to the customer (e.g. \"If you live in the EU…\").\n\nReturn only JSON:\n{\"title\":\"max 8 words\",\"bullets\":[\"...\",\"...\"],\"source_links\":[\"<allowed link>\",\"<allowed link>\"]}"
+            },
+            {
+              "content": "=Charge confusion reported by users: {{ $json.fee_issue }}: {{ $json.fee_issue_description }}\n\nAllowed source links:\n{{ $json.links_text }}\n\nOfficial help-page excerpts:\n{{ $json.context_text }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        3856,
+        384
+      ],
+      "id": "44fe4507-b8ad-44dd-a9fb-117134d44433",
+      "name": "Write explainer",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Explainer context').first().json;\nconst getText = x => x.output?.[0]?.content?.[0]?.text ?? x.text ?? x.message?.content ?? x.content ?? '';\nlet ai = {};\ntry { ai = JSON.parse(getText($input.first().json)); } catch (e) { ai = {}; }\nconst clean = s => String(s ?? '').replace(/\\s+/g, ' ').trim();\nconst words = s => clean(s).split(' ').filter(Boolean).length;\nconst M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];\nconst nice = d => { const [y, m, dd] = String(d).split('-'); return `${Number(dd)} ${M[Number(m) - 1]} ${y}`; };\n\nconst bullets = (ai.bullets ?? []).map(clean).filter(Boolean);\nconst links = [...new Set((ai.source_links ?? []).map(u => clean(u)))];\nconst title = clean(ai.title) || ctx.fee_issue;\nconst problems = [];\n\nif (!ctx.context_text) problems.push('no retrieved sources: AI wrote without context');\nif (bullets.length < 1 || bullets.length > 6) problems.push(`${bullets.length} bullets (allowed 1–6)`);\nbullets.forEach((b, i) => { if (words(b) > 35) problems.push(`bullet ${i + 1} has ${words(b)} words (max 35)`); });\nif (links.length !== 2) problems.push(`${links.length} source links (need exactly 2)`);\nlinks.forEach(u => { if (!ctx.allowed_links.includes(u)) problems.push(`link not from retrieved official pages: ${u}`); });\n\nconst BANNED = [/\\bsorry\\b/i, /apolog/i, /unfortunately/i, /\\bscam\\b/i, /\\bfraud/i, /guarantee/i,\n  /will (be )?refund/i, /will (receive|get) (a |your )?(full )?refund/i, /entitled to a refund/i, /\\bwe will\\b/i];\nconst allText = [title, ...bullets].join(' ');\nBANNED.forEach(rx => { const m = allText.match(rx); if (m) problems.push(`banned phrase: \"${m[0]}\"`); });\n\nconst srcNums = new Set(ctx.context_text.match(/\\d+(\\.\\d+)?/g) || []);\nconst bad = [...new Set((bullets.join(' ').match(/\\d+(\\.\\d+)?/g) || []).filter(n => !srcNums.has(n)))];\nif (bad.length) problems.push(`numbers not in the sources: ${bad.join(', ')}`);\n\nconst last_checked = `Last checked: ${nice(ctx.fetched_at)}`;\nconst explainer_text = [title, '', ...bullets.map(b => `• ${b}`), '', 'Sources:', ...links.map(u => `- ${u}`), '', last_checked].join('\\n');\nreturn [{ json: {\n  identified_fee_issue: ctx.fee_issue,\n  explainer_title: title,\n  explanation_bullets: bullets,\n  source_links: links,\n  last_checked,\n  explainer_text,\n  explainer_check: { passed: problems.length === 0, problems, retrieval: ctx.retrieval_check },\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4112,
+        384
+      ],
+      "id": "2959721f-39e1-4c80-adfc-afe14cf4709a",
+      "name": "Check explainer"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "memoryKey": {
+          "__rl": true,
+          "mode": "list",
+          "value": "vector_store_key"
+        },
+        "clearStore": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        3120,
+        384
+      ],
+      "id": "676fb0bd-95aa-4871-aa37-10c41d885395",
+      "name": "Store KB"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rank = $('Rank themes').first().json;\nconst pulse = $('Assemble pulse').first().json;\nconst facts = $('Pulse facts').first().json;\nconst q = $('Check quotes').first().json;\nconst ex = $('Check explainer').first().json;\nconst fee = $('Pick fee issue').first().json;\nconst getText = x => x.output?.[0]?.content?.[0]?.text ?? x.text ?? x.message?.content ?? x.content ?? '';\nlet ai = {}; try { ai = JSON.parse(getText($('Write pulse').first().json)); } catch (e) { ai = {}; }\n\nconst M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];\nconst today = new Date().toISOString().slice(0, 10);\nconst nice = d => { const [y, m, dd] = String(d).split('-'); return `${Number(dd)} ${M[Number(m) - 1]} ${y}`; };\nconst esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst lc = s => s.charAt(0).toLowerCase() + s.slice(1);\nconst top = rank.themes_ranked.filter(t => t.top3);\nconst actions = (ai.actions ?? []).map(a => String(a.idea ?? '').trim()).filter(Boolean);\nconst fi = fee.identified_fee_issue;\nconst feeNote = `${fi.reviews} of ${fee.fee_check.in_groups} charge-confusion reviews` + (fee.fee_check.close_call ? ' · close call' : '');\nconst window = `${nice(rank.window.start)} – ${nice(rank.window.end)}`;\n\n// ---------- 1) DOC ENTRY (plain text, but structured) ----------\nconst entry_core = [\n  `▸ Date (date): ${today}`,\n  `▸ Top themes (top_themes):\\n` + top.map((t, i) => `   ${i + 1}. ${t.name} — ${Math.round(t.share_of_pain_pct)}% of pain`).join('\\n'),\n  `▸ Weekly pulse (weekly_pulse):\\n\\n${pulse.weekly_pulse}`,\n  `▸ Identified fee issue (identified_fee_issue): ${fi.name} (${feeNote})`,\n  `▸ Customer explainer (explanation_bullets):\\n   ${ex.explainer_title}\\n` + ex.explanation_bullets.map(b => `   • ${b}`).join('\\n'),\n  `▸ Sources (source_links):\\n` + ex.source_links.map(u => `   • ${u}`).join('\\n'),\n  `▸ ${ex.last_checked}`,\n].join('\\n\\n');\n\n// ---------- 2) EMAIL DRAFT (HTML, inline styles for Gmail) ----------\nconst email_subject = `Weekly Product Pulse + Customer Clarification — ${nice(today)}`;\nconst S = {\n  wrap: 'font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#1f2937;max-width:680px',\n  h1: 'font-size:20px;margin:0 0 4px', meta: 'color:#6b7280;font-size:12px;margin:0 0 16px',\n  h2: 'font-size:16px;margin:24px 0 8px;padding-bottom:4px;border-bottom:2px solid #e5e7eb',\n  h3: 'font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;margin:16px 0 6px',\n  th: 'text-align:left;padding:6px 8px;background:#f3f4f6;font-size:12px', td: 'padding:6px 8px;border-top:1px solid #e5e7eb;vertical-align:top',\n  quote: 'margin:6px 0;padding:6px 10px;border-left:3px solid #9ca3af;background:#f9fafb',\n  box: 'padding:10px 12px;background:#eff6ff;border-radius:6px', note: 'color:#6b7280;font-size:12px',\n};\nconst email_body = `<div style=\"${S.wrap}\">\n<p>Hi Team,</p>\n<p>Here is this week's product pulse and the customer clarification for the top charge confusion.</p>\n<h1 style=\"${S.h1}\">Weekly Product Pulse: ChatGPT</h1>\n<p style=\"${S.meta}\">${nice(today)} · ${rank.coverage_eval.total_reviews} reviews · ${window} · Google Play, App Store, Trustpilot</p>\n\n<h2 style=\"${S.h2}\">1. Top themes (by user pain)</h2>\n<table style=\"border-collapse:collapse;width:100%\">\n<tr><th style=\"${S.th}\">#</th><th style=\"${S.th}\">Theme</th><th style=\"${S.th}\">Share of pain</th><th style=\"${S.th}\">Mostly about</th></tr>\n${top.map((t, i) => `<tr><td style=\"${S.td}\">${i + 1}</td><td style=\"${S.td}\"><b>${esc(t.name)}</b></td><td style=\"${S.td}\">${Math.round(t.share_of_pain_pct)}%</td><td style=\"${S.td}\">${esc(lc(t.sub_themes[0].name))}</td></tr>`).join('\\n')}\n</table>\n\n<h3 style=\"${S.h3}\">What users said</h3>\n${q.quotes.map(x => `<p style=\"${S.quote}\">“${esc(x.quote)}”<br><span style=\"${S.note}\">${esc(x.theme_name)} · ${esc(x.attribution.replace(/[()]/g, ''))}</span></p>`).join('\\n')}\n\n<h3 style=\"${S.h3}\">Key observation</h3>\n<p style=\"${S.box}\">${esc(ai.key_observation)}</p>\n\n<h3 style=\"${S.h3}\">What's working</h3>\n<p>${esc(ai.whats_working)}</p>\n\n<h3 style=\"${S.h3}\">Action ideas</h3>\n<ol>${actions.map(a => `<li>${esc(a)}</li>`).join('')}</ol>\n<p style=\"${S.note}\">${esc(facts.dataNote)}</p>\n\n<h2 style=\"${S.h2}\">2. Customer clarification: ${esc(fi.name)}</h2>\n<p style=\"${S.note}\">Most common charge confusion this week (${esc(feeNote)}). Customer-facing text, facts only, from official OpenAI help pages.</p>\n<p><b>${esc(ex.explainer_title)}</b></p>\n<ul>${ex.explanation_bullets.map(b => `<li style=\"margin-bottom:4px\">${esc(b)}</li>`).join('')}</ul>\n<p><b>Sources</b><br>${ex.source_links.map(u => `<a href=\"${esc(u)}\">${esc(u)}</a>`).join('<br>')}</p>\n<p style=\"${S.note}\">${esc(ex.last_checked)}</p>\n\n<hr style=\"border:none;border-top:1px solid #e5e7eb;margin:24px 0 8px\">\n<p style=\"${S.note}\">Generated by the ChatGPT Review Intelligence workflow and approved by a PM before this draft was created.</p>\n</div>`;\n\n// ---------- 3) APPROVAL EMAIL (checks first, then exactly what will be written) ----------\nconst ok = b => (b ? '✅' : '⚠️');\nconst checks = [\n  `${ok(pulse.pulse_check.passed)} Pulse checks (${pulse.pulse_check.word_count}/250 words) ${pulse.pulse_check.problems.join('; ')}`,\n  `${ok(q.quotes_check.all_verified)} Quotes verified word-for-word (${q.quotes_check.verified}/3)`,\n  `${ok(fee.fee_check.all_accounted_for)} Fee reviews all accounted for (${fee.fee_check.fee_reviews})${fee.fee_check.close_call ? ' · ⚠️ close call between top fee groups' : ''}`,\n  `${ok(ex.explainer_check.passed)} Explainer checks ${ex.explainer_check.problems.join('; ')}`,\n  `${ok(ex.explainer_check.retrieval.expected_article_found)} Retrieval eval (expected help article found, rank ${ex.explainer_check.retrieval.expected_page_rank ?? '–'})`,\n];\nconst review_html = `<div style=\"${S.wrap}\">\n<h2 style=\"${S.h2}\">Approval needed: Weekly Product Pulse — ${nice(today)}</h2>\n<p>Nothing is written to the doc or Gmail until you approve. Use the button at the bottom to Approve or Reject, and add comments.</p>\n<h3 style=\"${S.h3}\">Automated checks</h3>${checks.map(c => `<p style=\"margin:2px 0\">${esc(c)}</p>`).join('')}\n<h3 style=\"${S.h3}\">Email draft subject</h3><p>${esc(email_subject)}</p>\n<h3 style=\"${S.h3}\">Preview of the email draft</h3>\n<div style=\"border:1px solid #e5e7eb;border-radius:6px;padding:12px\">${email_body}</div></div>`;\n\nreturn [{ json: { run_date: today, review_html, entry_core, email_subject, email_body,\n  all_checks_passed: pulse.pulse_check.passed && q.quotes_check.all_verified && ex.explainer_check.passed && ex.explainer_check.retrieval.expected_article_found } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4256,
+        384
+      ],
+      "id": "70f8903c-42be-457a-85c9-13072e357d47",
+      "name": "Prepare review"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "your-email@example.com",
+        "subject": "=[Approval needed] Weekly Product Pulse — {{ $json.run_date }}",
+        "message": "={{ $json.review_html }}",
+        "responseType": "customForm",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Decision",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Approve"
+                  },
+                  {
+                    "option": "Reject"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Comments",
+              "fieldType": "textarea"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        4432,
+        400
+      ],
+      "id": "ecf07b89-7fab-491e-b2de-3dbff22ff4a6",
+      "name": "Ask for approval",
+      "webhookId": "5da824bb-0ea3-4894-b77e-39369a3af658",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "B0e4MVP834DfONZt",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const prep = $('Prepare review').first().json;\nconst rank = $('Rank themes').first().json;\nconst pulse = $('Assemble pulse').first().json;\nconst facts = $('Pulse facts').first().json;\nconst q = $('Check quotes').first().json;\nconst ex = $('Check explainer').first().json;\nconst fee = $('Pick fee issue').first().json;\nconst getText = x => x.output?.[0]?.content?.[0]?.text ?? x.text ?? x.message?.content ?? x.content ?? '';\nlet ai = {}; try { ai = JSON.parse(getText($('Write pulse').first().json)); } catch (e) { ai = {}; }\n\nconst j = $input.first().json;\nconst flat = { ...(j.data ?? {}), ...j };\nconst find = name => { const k = Object.keys(flat).find(k => k.toLowerCase().includes(name)); return k ? flat[k] : ''; };\nconst decision = String(find('decision') || (j.data?.approved === true ? 'Approve' : '')).trim();\nconst approved = /^approve/i.test(decision);\nconst comments = String(find('comment') || '').trim();\nconst at = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }) + ' IST';\nconst M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];\nconst nice = d => { const [y, m, dd] = String(d).split('-'); return `${Number(dd)} ${M[Number(m) - 1]} ${y}`; };\nconst lc = s => s.charAt(0).toLowerCase() + s.slice(1);\nconst runId = $execution.id;\nconst top = rank.themes_ranked.filter(t => t.top3);\nconst fi = fee.identified_fee_issue;\n\nconst B = [];\nB.push({ t: 'h1', text: `Weekly Product Pulse — ${nice(prep.run_date)}` });\nB.push({ t: 'p', text: `${approved ? '✅ Approved' : '⛔ Rejected'} by PM · ${at} · Run #${runId}`, gray: true });\nif (comments) B.push({ t: 'p', text: `💬 PM comments: ${comments}`, italic: true });\nB.push({ t: 'p', text: `Date (date): ${prep.run_date} · ${rank.coverage_eval.total_reviews} reviews · ${nice(rank.window.start)} – ${nice(rank.window.end)} · Google Play, App Store, Trustpilot`, gray: true });\n\nB.push({ t: 'h2', text: 'Top themes (top_themes)' });\ntop.forEach(t => B.push({ t: 'number', text: `${t.name} — ${Math.round(t.share_of_pain_pct)}% of pain, mostly ${lc(t.sub_themes[0].name)}`, boldPrefix: t.name.length }));\n\nB.push({ t: 'h2', text: 'Weekly pulse (weekly_pulse)' });\nB.push({ t: 'h3', text: 'What users said' });\nq.quotes.forEach(x => B.push({ t: 'bullet', text: `“${x.quote}” ${x.attribution}`, italic: true }));\nB.push({ t: 'h3', text: 'Key observation' });\nB.push({ t: 'p', text: String(ai.key_observation ?? '') });\nB.push({ t: 'h3', text: \"What's working\" });\nB.push({ t: 'p', text: String(ai.whats_working ?? '') });\nB.push({ t: 'h3', text: 'Action ideas' });\n(ai.actions ?? []).forEach(a => B.push({ t: 'number', text: String(a.idea ?? '') }));\nB.push({ t: 'p', text: facts.dataNote, gray: true });\nB.push({ t: 'p', text: `Pulse checks: ${pulse.pulse_check.word_count}/250 words · quotes verified ${q.quotes_check.verified}/3`, gray: true });\n\nB.push({ t: 'h2', text: 'Identified fee issue (identified_fee_issue)' });\nB.push({ t: 'p', text: `${fi.name} — ${fi.reviews} of ${fee.fee_check.in_groups} charge-confusion reviews${fee.fee_check.close_call ? ' (close call)' : ''}`, boldPrefix: fi.name.length });\n\nB.push({ t: 'h2', text: 'Customer explainer (explanation_bullets)' });\nB.push({ t: 'p', text: ex.explainer_title, bold: true });\nex.explanation_bullets.forEach(b => B.push({ t: 'bullet', text: b }));\n\nB.push({ t: 'h2', text: 'Sources (source_links)' });\nex.source_links.forEach(u => B.push({ t: 'bullet', text: u, link: u }));\nB.push({ t: 'p', text: ex.last_checked, gray: true });\n\nconst entry_json = JSON.stringify(B);\nconst entry_text = B.map(b => b.text).join('\\n');\nreturn [{ json: { approved, decision: decision || '(no answer)', comments, decided_at: at, run_id: runId,\n  entry_json, entry_text, email_subject: prep.email_subject, email_body: prep.email_body } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4624,
+        400
+      ],
+      "id": "290b8285-0a8c-4387-a22c-0b5b5019d813",
+      "name": "Read decision"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b61c9384-4f83-4bec-9b8a-21b40e46f3d0",
+              "leftValue": "={{ $json.approved }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4784,
+        400
+      ],
+      "id": "bf793a55-b9ae-4d0b-800c-84b29ae555a8",
+      "name": "Approved?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const P = $('Pick fee issue').first().json;\nconst L = $('Fee list').first().json;\nconst G = L.fee_groups;\nconst nameOf = g => g === 'X' ? 'Not a charge confusion' : (G[g]?.name ?? '');\n// saved labels (refresh their names) + any new labels from this run\nconst all = [...L.stored.map(s => ({ review_id: s.review_id, group: s.group.toUpperCase() })), ...P.new_tags];\nreturn all.map(t => ({ json: { review_id: t.review_id, fee_group: t.group, fee_group_name: nameOf(t.group) } }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        128
+      ],
+      "id": "8bd5234d-6f45-4941-a811-7e23e9503102",
+      "name": "Fee tags to save"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "WluKRJa4Ohu4NVg0",
+          "mode": "list",
+          "cachedResultName": "ChatGPT Reviews Dataset Milestone5",
+          "cachedResultUrl": "/projects/vKq6JT7EhpPiUoxu/datatables/WluKRJa4Ohu4NVg0"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "review_id",
+              "keyValue": "={{ $json.review_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "fee_group": "={{ $json.fee_group }}",
+            "fee_group_name": "={{ $json.fee_group_name }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "review_id",
+              "displayName": "review_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "rating",
+              "displayName": "rating",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "app_version",
+              "displayName": "app_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "country",
+              "displayName": "country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "experience_date",
+              "displayName": "experience_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "theme",
+              "displayName": "theme",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "sub_theme",
+              "displayName": "sub_theme",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "praise_topic",
+              "displayName": "praise_topic",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "fee_related",
+              "displayName": "fee_related",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "fee_type",
+              "displayName": "fee_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "language",
+              "displayName": "language",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "tagged_with",
+              "displayName": "tagged_with",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "theme_name",
+              "displayName": "theme_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "sub_theme_name",
+              "displayName": "sub_theme_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "fee_group",
+              "displayName": "fee_group",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fee_group_name",
+              "displayName": "fee_group_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2304,
+        128
+      ],
+      "id": "1ed9f8c7-39e3-462a-b3c6-61c8653857bf",
+      "name": "Save fee groups"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://neham7.app.n8n.cloud/mcp/c129b705-c370-42ac-84fa-7b27c8a76991",
+        "authentication": "bearerAuth",
+        "tool": {
+          "__rl": true,
+          "value": "append_to_pulse_log",
+          "mode": "list",
+          "cachedResultName": "append_to_pulse_log"
+        },
+        "inputMode": "json",
+        "jsonInput": "=  {{ JSON.stringify({ entry_json: $json.entry_json }) }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClient",
+      "typeVersion": 1.1,
+      "position": [
+        5008,
+        304
+      ],
+      "id": "4451ad9e-e113-45ba-995e-4a5d4e2f10d8",
+      "name": "Append to log",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "8YUdJmP9FVUoCtKe",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $('Read decision').first().json;\nreturn [{ json: { status: 'rejected', decided_at: d.decided_at, comments: d.comments,\n  note: 'Rejected by PM: nothing was written to the doc or Gmail.' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5008,
+        496
+      ],
+      "id": "bfe9a1fc-8a1f-49de-abd1-fd2b505381e1",
+      "name": "Log rejection"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://neham7.app.n8n.cloud/mcp/c129b705-c370-42ac-84fa-7b27c8a76991",
+        "authentication": "bearerAuth",
+        "tool": {
+          "__rl": true,
+          "value": "create_email_draft",
+          "mode": "list",
+          "cachedResultName": "create_email_draft"
+        },
+        "parameters": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "subject": "={{ $('Read decision').first().json.email_subject }}",
+            "body": "={{ $('Read decision').first().json.email_body }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "subject",
+              "displayName": "subject",
+              "defaultMatch": false,
+              "required": true,
+              "display": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "body",
+              "displayName": "body",
+              "defaultMatch": false,
+              "required": true,
+              "display": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClient",
+      "typeVersion": 1.1,
+      "position": [
+        5200,
+        304
+      ],
+      "id": "4da238c9-499a-4448-80f8-0607401f5539",
+      "name": "MCP Client",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "8YUdJmP9FVUoCtKe",
+          "name": "Bearer Auth account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Data Table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Table": {
+      "main": [
+        [
+          {
+            "node": "Combine reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine reviews": {
+      "main": [
+        [
+          {
+            "node": "Discover themes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discover themes": {
+      "main": [
+        [
+          {
+            "node": "Frozen themes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Frozen themes": {
+      "main": [
+        [
+          {
+            "node": "Make batches",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load tagged reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make batches": {
+      "main": [
+        [
+          {
+            "node": "Tag reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag reviews": {
+      "main": [
+        [
+          {
+            "node": "Check & parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check & parse": {
+      "main": [
+        [
+          {
+            "node": "Save Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load tagged reviews": {
+      "main": [
+        [
+          {
+            "node": "Rank themes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rank themes": {
+      "main": [
+        [
+          {
+            "node": "Quote shortlist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quote shortlist": {
+      "main": [
+        [
+          {
+            "node": "Pick quotes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick quotes": {
+      "main": [
+        [
+          {
+            "node": "Check quotes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check quotes": {
+      "main": [
+        [
+          {
+            "node": "Fee list",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fee list": {
+      "main": [
+        [
+          {
+            "node": "Group fee issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Group fee issues": {
+      "main": [
+        [
+          {
+            "node": "Pick fee issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick fee issue": {
+      "main": [
+        [
+          {
+            "node": "Pulse facts",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fee tags to save",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pulse facts": {
+      "main": [
+        [
+          {
+            "node": "Write pulse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write pulse": {
+      "main": [
+        [
+          {
+            "node": "Assemble pulse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble pulse": {
+      "main": [
+        [
+          {
+            "node": "KB pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "KB pages": {
+      "main": [
+        [
+          {
+            "node": "Fetch page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch page": {
+      "main": [
+        [
+          {
+            "node": "Clean pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean pages": {
+      "main": [
+        [
+          {
+            "node": "Store KB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Store KB",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Store KB",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Retrieve KB",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrieve KB": {
+      "main": [
+        [
+          {
+            "node": "Explainer context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Explainer context": {
+      "main": [
+        [
+          {
+            "node": "Write explainer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write explainer": {
+      "main": [
+        [
+          {
+            "node": "Check explainer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store KB": {
+      "main": [
+        [
+          {
+            "node": "Retrieve KB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check explainer": {
+      "main": [
+        [
+          {
+            "node": "Prepare review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare review": {
+      "main": [
+        [
+          {
+            "node": "Ask for approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask for approval": {
+      "main": [
+        [
+          {
+            "node": "Read decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read decision": {
+      "main": [
+        [
+          {
+            "node": "Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fee tags to save": {
+      "main": [
+        [
+          {
+            "node": "Save fee groups",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved?": {
+      "main": [
+        [
+          {
+            "node": "Append to log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log rejection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to log": {
+      "main": [
+        [
+          {
+            "node": "MCP Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "27383d07-88ca-4cd2-aea9-2b3931b32e09",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "eb427415758354302b3978a905abb45ff006b681219eb6b8068f3f48e6bd369f"
+  },
+  "nodeGroups": [],
+  "id": "A5dyLQiQe0EVJi8r",
+  "tags": []
+}

@@ -4,18 +4,179 @@
 
 // 1) LINKS: paste your links between the quotes (leave "" to hide a button)
 window.LINKS = {
-  github: "",
+  github: "https://github.com/ngm76/ChatGPT-Review-Pulse---RAGs-Context-Engineering-Demo",
   video: "",
-  doc: ""
+  doc: "https://docs.google.com/document/d/1M20MAQh9AXokbWMxprQHfIx7WI96DScTYDDu6WemYkI/edit?usp=sharing"
 };
 
 // 2) ENTRY: paste the final run's entry_json (output of the "Read decision" node)
 //    Replace everything between  window.ENTRY =  and the final  ;
-window.ENTRY = [{"t":"h1","text":"Weekly Product Pulse — 16 Oct 2026"},{"t":"p","text":"✅ Approved by PM · 16 Oct 2026, 21:15 IST · Run #312","gray":true},{"t":"p","text":"💬 PM comments: Looks good. Put account checks before refunds next week.","italic":true},{"t":"p","text":"Date (date): 2026-10-16 · 722 reviews · 21 Jul 2026 – 12 Oct 2026 · Google Play, App Store, Trustpilot","gray":true},{"t":"h2","text":"Top themes (top_themes)"},{"t":"number","text":"Usage limits, pricing & billing — 36% of pain, mostly usage limits and reset timers","boldPrefix":31},{"t":"number","text":"Reliability, accounts & support — 22% of pain, mostly crashes, errors and slowness","boldPrefix":31},{"t":"number","text":"Accuracy & hallucinations — 19% of pain, mostly confident but wrong answers or advice","boldPrefix":25},{"t":"h2","text":"Weekly pulse (weekly_pulse)"},{"t":"h3","text":"What users said"},{"t":"bullet","text":"“…Yet, a minute later, I was hit with another chat limit, this time until 8:30.” (Google Play, 1★, Sep 2026)","italic":true},{"t":"bullet","text":"“…Never managed to generate anything then activity is paused and wait to refresh.” (Google Play, 1★, Sep 2026)","italic":true},{"t":"bullet","text":"“…if I ask for five things, it only gets two of them right.” (Trustpilot, 1★, Oct 2026)","italic":true},{"t":"h3","text":"Key observation"},{"t":"p","text":"Usage limits and reset timers cause the largest friction, outnumbering reliability and accuracy complaints."},{"t":"h3","text":"What's working"},{"t":"p","text":"Users value study help, productivity, and writing assistance."},{"t":"h3","text":"Action ideas"},{"t":"number","text":"Display per-session remaining messages and next-reset countdown in-chat; track limit-complaint reduction."},{"t":"number","text":"Add error-retry with clear offline message and automated report upload; measure crash-rate decrease."},{"t":"number","text":"Introduce model confidence indicators and 'verify' button linking to sources."},{"t":"p","text":"Data note: no reliable trend this week; Google Play data ends 19 Sep 2026.","gray":true},{"t":"p","text":"Pulse checks: 228/250 words · quotes verified 3/3","gray":true},{"t":"h2","text":"Identified fee issue (identified_fee_issue)"},{"t":"p","text":"Paid but plan not active or access lost — 7 of 25 charge-confusion reviews (close call)","boldPrefix":39},{"t":"h2","text":"Customer explainer (explanation_bullets)"},{"t":"p","text":"Charged but plan not active","bold":true},{"t":"bullet","text":"If charged but still on Free plan, check Settings > Account for the ChatGPT account email and sign-in method."},{"t":"bullet","text":"On iOS/Android, go to Settings > Restore purchases."},{"t":"bullet","text":"You can request a refund if you believe you were incorrectly charged; refunds are typically processed within 5–10 business days after approval."},{"t":"h2","text":"Sources (source_links)"},{"t":"bullet","text":"https://help.openai.com/en/articles/6950777-what-is-chatgpt-plus","link":"https://help.openai.com/en/articles/6950777-what-is-chatgpt-plus"},{"t":"bullet","text":"https://help.openai.com/en/articles/20001043-how-do-i-avoid-being-charged-twice-if-i-subscribe-to-chatgpt-on-ios-android-and-the-web","link":"https://help.openai.com/en/articles/20001043-how-do-i-avoid-being-charged-twice-if-i-subscribe-to-chatgpt-on-ios-android-and-the-web"},{"t":"p","text":"Last checked: 16 Oct 2026","gray":true}];
+window.ENTRY = [
+ {
+  "t": "h1",
+  "text": "Weekly Product Pulse — 20 Oct 2026"
+ },
+ {
+  "t": "p",
+  "text": "✅ Approved by PM · 20 Oct 2026, 21:14 IST · Run #32",
+  "gray": true
+ },
+ {
+  "t": "p",
+  "text": "💬 PM comments: ok",
+  "italic": true
+ },
+ {
+  "t": "p",
+  "text": "Date (date): 2026-10-20 · 722 reviews · 21 Jul 2026 – 12 Oct 2026 · Google Play, App Store, Trustpilot",
+  "gray": true
+ },
+ {
+  "t": "h2",
+  "text": "Top themes (top_themes)"
+ },
+ {
+  "t": "number",
+  "text": "Usage limits, pricing & billing — 36% of pain, mostly usage limits and reset timers",
+  "boldPrefix": 31
+ },
+ {
+  "t": "number",
+  "text": "Reliability, accounts & support — 22% of pain, mostly crashes, errors and slowness",
+  "boldPrefix": 31
+ },
+ {
+  "t": "number",
+  "text": "Accuracy & hallucinations — 19% of pain, mostly confident but wrong answers or advice",
+  "boldPrefix": 25
+ },
+ {
+  "t": "h2",
+  "text": "Weekly pulse (weekly_pulse)"
+ },
+ {
+  "t": "h3",
+  "text": "What users said"
+ },
+ {
+  "t": "bullet",
+  "text": "“Yet, a minute later, I was hit with another chat limit, this time until 8:30.” (Google Play, 1★, Sep 2026)",
+  "italic": true
+ },
+ {
+  "t": "bullet",
+  "text": "“Never managed to generate anything then activity is paused and wait to refresh.” (Google Play, 1★, Sep 2026)",
+  "italic": true
+ },
+ {
+  "t": "bullet",
+  "text": "“If it can't give you the correct answer, it will make up something that sounds plausible and state it as fact.” (Google Play, 1★, Sep 2026)",
+  "italic": true
+ },
+ {
+  "t": "h3",
+  "text": "Key observation"
+ },
+ {
+  "t": "p",
+  "text": "Usage limits and reset timers drive the largest share of pain (36.4%), causing frequent user disruption ahead of reliability and hallucination complaints."
+ },
+ {
+  "t": "h3",
+  "text": "What's working"
+ },
+ {
+  "t": "p",
+  "text": "Help with studying, productivity and writing."
+ },
+ {
+  "t": "h3",
+  "text": "Action ideas"
+ },
+ {
+  "t": "number",
+  "text": "Show real-time usage countdown and explicit reset time within each chat session banner."
+ },
+ {
+  "t": "number",
+  "text": "Add in-app retry button and automated error reporting for crashes and slow responses."
+ },
+ {
+  "t": "number",
+  "text": "Surface low-confidence warnings and source citations for answers flagged as uncertain."
+ },
+ {
+  "t": "p",
+  "text": "Data note: no reliable trend this week; Google Play data ends 19 Sep 2026.",
+  "gray": true
+ },
+ {
+  "t": "p",
+  "text": "Pulse checks: 227/250 words · quotes verified 3/3",
+  "gray": true
+ },
+ {
+  "t": "h2",
+  "text": "Identified fee issue (identified_fee_issue)"
+ },
+ {
+  "t": "p",
+  "text": "Paid but plan not active or access lost — 7 of 25 charge-confusion reviews (close call)",
+  "boldPrefix": 39
+ },
+ {
+  "t": "h2",
+  "text": "Customer explainer (explanation_bullets)"
+ },
+ {
+  "t": "p",
+  "text": "Why paid plan didn't activate",
+  "bold": true
+ },
+ {
+  "t": "bullet",
+  "text": "ChatGPT Plus is a $20/month subscription; if you believe you were incorrectly charged you can request a refund; refunds are typically processed within 5–10 business days after approval."
+ },
+ {
+  "t": "bullet",
+  "text": "If an Apple renewal fails, Apple may continue trying to recover it; your subscription can appear inactive in ChatGPT while Apple still attempts recovery, possibly causing duplicate charges."
+ },
+ {
+  "t": "bullet",
+  "text": "Update your Apple payment method and allow Apple to recover the original subscription rather than starting a new subscription on a different platform to avoid duplicates."
+ },
+ {
+  "t": "bullet",
+  "text": "Check the ChatGPT account email; on iOS/Android use Settings > Restore purchases; sign out and sign back in; contact support with the receipt or last four card digits if the issue persists."
+ },
+ {
+  "t": "bullet",
+  "text": "To cancel: Log into ChatGPT, click your profile icon → Settings → Account → Manage → Cancel subscription."
+ },
+ {
+  "t": "h2",
+  "text": "Sources (source_links)"
+ },
+ {
+  "t": "bullet",
+  "text": "https://help.openai.com/en/articles/6950777-what-is-chatgpt-plus",
+  "link": "https://help.openai.com/en/articles/6950777-what-is-chatgpt-plus"
+ },
+ {
+  "t": "bullet",
+  "text": "https://help.openai.com/en/articles/20001043-how-do-i-avoid-being-charged-twice-if-i-subscribe-to-chatgpt-on-ios-android-and-the-web",
+  "link": "https://help.openai.com/en/articles/20001043-how-do-i-avoid-being-charged-twice-if-i-subscribe-to-chatgpt-on-ios-android-and-the-web"
+ },
+ {
+  "t": "p",
+  "text": "Last checked: 20 Oct 2026",
+  "gray": true
+ }
+];
 
 // 3) STATS: numbers from the n8n run (Rank themes, Pick fee issue, Check explainer)
 window.STATS = {
-  "run_note": "Numbers from the n8n run on 16 Oct 2026 (Rank themes, Pick fee issue, Check explainer nodes).",
+  "run_note": "Numbers from the n8n run on 20 Oct 2026 (run #32) (Rank themes, Pick fee issue, Check explainer nodes).",
   "total_reviews": 722,
   "window": {
     "start": "21 Jul 2026",
